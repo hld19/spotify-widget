@@ -3,7 +3,7 @@ import SpotifyWebApi from 'spotify-web-api-node';
 
 // Spotify API configuration
 const CLIENT_ID = '1875ce4aa1164cb8a5fcfa6959524da1'; // ← Replace this with your Client ID from Spotify Dashboard
-const REDIRECT_URI = 'http://127.0.0.1:3000';
+const REDIRECT_URI = 'https://spotify-topaz-five.vercel.app/';
 const SCOPES = [
   'user-read-currently-playing',
   'user-read-playback-state',
@@ -40,9 +40,7 @@ export async function getAuthUrl() {
     scope: SCOPES.join(' ')
   });
   
-  const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
-  console.log("Generated Auth URL:", authUrl);
-  return authUrl;
+  return `https://accounts.spotify.com/authorize?${params.toString()}`;
 }
 
 // Handle OAuth callback
