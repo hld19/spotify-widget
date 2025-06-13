@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import SpotifyWebApi from 'spotify-web-api-node';
 
 // Spotify API configuration
-const CLIENT_ID = '1875ce4aa1164cb8a5fcfa6959524da1'; // ← Replace this with your Client ID from Spotify Dashboard
+const CLIENT_ID = '0d719dbb994743bc9a8af7a7d0b4f3f1'; // ← Replace this with your Client ID from Spotify Dashboard
 const REDIRECT_URI = 'https://spotify-topaz-five.vercel.app/';
 const SCOPES = [
   'user-read-currently-playing',
