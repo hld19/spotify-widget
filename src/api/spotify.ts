@@ -1,4 +1,3 @@
-
 import SpotifyWebApi from 'spotify-web-api-node';
 import pkceChallenge from 'pkce-challenge';
 
@@ -27,8 +26,8 @@ async function generatePKCEChallenge() {
 export async function getAuthUrl() {
   const { verifier, challenge } = await generatePKCEChallenge();
   
-  // Store verifier in localStorage for later use
-  localStorage.setItem('code_verifier', verifier);
+  // Store verifier in sessionStorage for later use
+  sessionStorage.setItem('code_verifier', verifier);
   
   // Build authorization URL manually with PKCE
   const params = new URLSearchParams({
@@ -45,7 +44,7 @@ export async function getAuthUrl() {
 
 // Handle OAuth callback
 export async function handleCallback(code: string) {
-  const verifier = localStorage.getItem('code_verifier');
+  const verifier = sessionStorage.getItem('code_verifier');
   if (!verifier) throw new Error('No code verifier found');
   
   try {
@@ -78,6 +77,9 @@ export async function handleCallback(code: string) {
     
     // Set access token for future API calls
     spotifyApi.setAccessToken(data.access_token);
+    
+    // Clean up verifier
+    sessionStorage.removeItem('code_verifier');
     
     return data;
   } catch (error) {
@@ -152,5 +154,5 @@ export function isAuthenticated() {
 export function logout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
-  localStorage.removeItem('code_verifier');
+  sessionStorage.removeItem('code_verifier');
 } 
