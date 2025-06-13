@@ -1,5 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
+
 import SpotifyWebApi from 'spotify-web-api-node';
+import pkceChallenge from 'pkce-challenge';
 
 // Spotify API configuration
 const CLIENT_ID = '0d719dbb994743bc9a8af7a7d0b4f3f1'; // ← Replace this with your Client ID from Spotify Dashboard
@@ -18,9 +19,8 @@ const spotifyApi = new SpotifyWebApi({
 
 // Generate PKCE challenge and verifier
 async function generatePKCEChallenge() {
-  const verifier = await invoke<string>('generate_code_verifier');
-  const challenge = await invoke<string>('generate_code_challenge', { verifier });
-  return { verifier, challenge };
+  const { code_verifier, code_challenge } = await pkceChallenge();
+  return { verifier: code_verifier, challenge: code_challenge };
 }
 
 // Get authorization URL
