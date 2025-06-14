@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { getCurrentTrack, isAuthenticated, login, setToken } from '../api/spotify';
+import {
+  getCurrentTrack,
+  isAuthenticated,
+  login,
+  setToken,
+  play,
+  pause,
+  skipToNext,
+  skipToPrevious,
+} from '../api/spotify';
 import Background from './Background';
 import AlbumCover from './AlbumCover';
 import Controls from './Controls';
@@ -25,12 +34,17 @@ const Player = () => {
 
     if (isAuthenticatedState) {
       loadCurrentTrack();
+      const interval = setInterval(loadCurrentTrack, 3000); // Refresh every 3 seconds
+      return () => {
+        authListener.then((unlisten) => unlisten());
+        clearInterval(interval);
+      };
     }
 
     return () => {
       authListener.then((unlisten) => unlisten());
     };
-  }, []);
+  }, [isAuthenticatedState]);
 
   const loadCurrentTrack = async () => {
     try {
@@ -53,6 +67,43 @@ const Player = () => {
     } catch (error) {
       console.error('Login failed', error);
       setError('Failed to initiate login.');
+    }
+  };
+
+  const handlePlayPause = async () => {
+    try {
+      if (currentTrack?.is_playing) {
+        await pause();
+      } else {
+        await play();
+      }
+      // Refresh track state immediately after action
+      loadCurrentTrack();
+    } catch (error) {
+      console.error('Failed to toggle play/pause', error);
+      setError('Failed to toggle play/pause.');
+    }
+  };
+
+  const handleNext = async () => {
+    try {
+      await skipToNext();
+      // Refresh track state immediately after action
+      loadCurrentTrack();
+    } catch (error) {
+      console.error('Failed to skip to next track', error);
+      setError('Failed to skip to next track.');
+    }
+  };
+
+  const handlePrevious = async () => {
+    try {
+      await skipToPrevious();
+      // Refresh track state immediately after action
+      loadCurrentTrack();
+    } catch (error) {
+      console.error('Failed to skip to previous track', error);
+      setError('Failed to skip to previous track.');
     }
   };
 
@@ -80,21 +131,27 @@ const Player = () => {
 
   if (!currentTrack) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
+      <div
+        data-tauri-drag-region
+        className="w-full h-full flex items-center justify-center"
+      >
         <div className="text-white">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full" data-tauri-drag-region>
       <Background imageUrl={currentTrack.item?.album?.images[0]?.url} />
-      <div className="relative z-10 p-4">
+      <div className="relative z-10 p-4 flex items-center space-x-4">
         <AlbumCover imageUrl={currentTrack.item?.album?.images[0]?.url} />
         <Controls
           isPlaying={currentTrack.is_playing}
           trackName={currentTrack.item?.name}
           artistName={currentTrack.item?.artists[0]?.name}
+          onPlayPause={handlePlayPause}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
         />
       </div>
     </div>

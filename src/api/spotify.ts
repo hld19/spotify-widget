@@ -36,6 +36,54 @@ export async function getCurrentTrack() {
   }
 }
 
+export async function play() {
+  try {
+    await spotifyApi.play();
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      await refreshAccessToken();
+      return play();
+    }
+    throw error;
+  }
+}
+
+export async function pause() {
+  try {
+    await spotifyApi.pause();
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      await refreshAccessToken();
+      return pause();
+    }
+    throw error;
+  }
+}
+
+export async function skipToNext() {
+  try {
+    await spotifyApi.skipToNext();
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      await refreshAccessToken();
+      return skipToNext();
+    }
+    throw error;
+  }
+}
+
+export async function skipToPrevious() {
+  try {
+    await spotifyApi.skipToPrevious();
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      await refreshAccessToken();
+      return skipToPrevious();
+    }
+    throw error;
+  }
+}
+
 export async function refreshAccessToken() {
   // For now, if refresh fails, we force a re-login by clearing credentials.
   const refreshToken = localStorage.getItem('refresh_token');

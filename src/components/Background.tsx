@@ -6,14 +6,14 @@ interface BackgroundProps {
 
 const Background: React.FC<BackgroundProps> = ({ imageUrl }) => {
   return (
-    <div 
-      className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-xl"
+    <div
+      className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundImage: `url(${imageUrl})`,
       }}
-    />
+    >
+      <div className="absolute inset-0 w-full h-full bg-black bg-opacity-50 backdrop-blur-md"></div>
+    </div>
   );
 };
 

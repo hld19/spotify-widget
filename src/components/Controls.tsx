@@ -4,33 +4,43 @@ interface ControlsProps {
   isPlaying?: boolean;
   trackName?: string;
   artistName?: string;
+  onPlayPause: () => void;
+  onNext: () => void;
+  onPrevious: () => void;
 }
 
-const Controls: React.FC<ControlsProps> = ({ isPlaying, trackName, artistName }) => {
+const Controls: React.FC<ControlsProps> = ({
+  isPlaying,
+  trackName,
+  artistName,
+  onPlayPause,
+  onNext,
+  onPrevious,
+}) => {
   return (
-    <div className="text-center">
+    <div className="flex-grow text-center">
       <div className="mb-2">
         <h3 className="text-white font-semibold truncate">{trackName || 'No track'}</h3>
         <p className="text-gray-300 text-sm truncate">{artistName || 'No artist'}</p>
       </div>
-      <div className="flex justify-center space-x-4">
-        <button className="text-white hover:text-gray-300">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      <div className="flex justify-center items-center space-x-4">
+        <button onClick={onPrevious} className="text-white hover:text-gray-300 p-2">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
           </svg>
         </button>
-        <button className="text-white hover:text-gray-300">
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button onClick={onPlayPause} className="text-white hover:text-gray-300 p-2 rounded-full bg-white bg-opacity-10">
+          <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
             {isPlaying ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path d="M8 5v14l11-7z" />
             )}
           </svg>
         </button>
-        <button className="text-white hover:text-gray-300">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        <button onClick={onNext} className="text-white hover:text-gray-300 p-2">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
           </svg>
         </button>
       </div>
