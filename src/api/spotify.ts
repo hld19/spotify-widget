@@ -85,13 +85,11 @@ export async function skipToPrevious() {
 }
 
 export async function refreshAccessToken() {
-  // For now, if refresh fails, we force a re-login by clearing credentials.
   const refreshToken = localStorage.getItem('refresh_token');
   if (!refreshToken) {
     logout();
     throw new Error('No refresh token found, please login again.');
   }
-  // This is not a proper refresh, but it will force the user to log in again if the token expires.
   logout();
   throw new Error('Session expired. Please log in again.');
 }

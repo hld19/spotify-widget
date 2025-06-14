@@ -1,4 +1,3 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use axum::{
@@ -9,13 +8,13 @@ use axum::{
 };
 use oauth2::{
     basic::BasicClient, reqwest::async_http_client, AuthUrl, AuthorizationCode, ClientId,
-    CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenResponse, TokenUrl,
+    CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl,
 };
 use serde::Deserialize;
 use std::{net::SocketAddr, sync::Arc};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
-// The client ID and secret from the Spotify dashboard.
 const CLIENT_ID: &str = "0d719dbb994743bc9a8af7a7d0b4f3f1";
 
 type OAuthClient = BasicClient;
@@ -117,6 +116,37 @@ fn main() {
     tauri::Builder::default()
         .setup(move |app| {
             let app_handle = app.handle().clone();
+            let window = app.get_webview_window("main").unwrap();
+            window.set_decorations(false).unwrap();
+
+            let shortcut_prev =
+                Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::ArrowLeft);
+            let shortcut_next =
+                Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::ArrowRight);
+            let shortcut_quit = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyQ);
+
+            app.handle()
+                .plugin(
+                    tauri_plugin_global_shortcut::Builder::new()
+                        .with_handler(move |app, shortcut, event| {
+                            if event.state() == ShortcutState::Pressed {
+                                if shortcut == &shortcut_prev {
+                                    app.emit("skip-to-previous", ()).unwrap();
+                                } else if shortcut == &shortcut_next {
+                                    app.emit("skip-to-next", ()).unwrap();
+                                } else if shortcut == &shortcut_quit {
+                                    app.get_webview_window("main").unwrap().close().unwrap();
+                                }
+                            }
+                        })
+                        .build(),
+                )
+                .unwrap();
+
+            app.global_shortcut().register(shortcut_prev).unwrap();
+            app.global_shortcut().register(shortcut_next).unwrap();
+            app.global_shortcut().register(shortcut_quit).unwrap();
+
             let axum_state = AxumState {
                 app_state: state_clone,
                 app_handle,

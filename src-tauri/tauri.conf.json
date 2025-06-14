@@ -16,8 +16,8 @@
         "fullscreen": false,
         "resizable": true,
         "title": "Spotify Widget",
-        "width": 400,
-        "height": 600,
+        "width": 800,
+        "height": 400,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true
