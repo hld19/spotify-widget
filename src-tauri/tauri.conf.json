@@ -36,6 +36,20 @@
     ]
   },
   "plugins": {
-    "opener": {}
+    "opener": {},
+    "oauth": {
+      "redirectUri": "tauri://auth",
+      "ports": [
+        14700,
+        14701
+      ]
+    },
+    "deepLink": {
+      "protocols": [
+        {
+          "scheme": "tauri-auth"
+        }
+      ]
+    }
   }
 }

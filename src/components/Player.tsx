@@ -1,105 +1,71 @@
 import { useEffect, useState } from 'react';
-import { getAuthUrl, getCurrentTrack, isAuthenticated, handleCallback } from '../api/spotify';
+import { getCurrentTrack, isAuthenticated, login, setToken } from '../api/spotify';
 import Background from './Background';
 import AlbumCover from './AlbumCover';
 import Controls from './Controls';
-import { listen } from '@tauri-apps/api/event';
+import { listen, Event } from '@tauri-apps/api/event';
+
+interface AuthTokenPayload {
+  access_token: string;
+  refresh_token?: string;
+}
 
 const Player = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticatedState, setIsAuthenticatedState] = useState(isAuthenticated());
   const [error, setError] = useState<string | null>(null);
   const [currentTrack, setCurrentTrack] = useState<any>(null);
 
   useEffect(() => {
-    // Listen for deep link events
-    const unlisten = listen('tauri://deep-link', async (data) => {
-      console.log('Deep link received:', data);
-      try {
-        const url = new URL(data.payload as string);
-        if (url.protocol === 'spotify-widget:') {
-          const urlParams = new URLSearchParams(url.search);
-          const code = urlParams.get('code');
-          if (code) {
-            await handleCallback(code);
-            loadCurrentTrack();
-          }
-        }
-      } catch (error) {
-        console.error('Error handling deep link:', error);
-        setError('Failed to process authentication.');
-      }
+    const authListener = listen('spotify-auth-token', (event: Event<AuthTokenPayload>) => {
+      const { access_token, refresh_token } = event.payload;
+      setToken(access_token, refresh_token);
+      setIsAuthenticatedState(true);
+      loadCurrentTrack();
     });
 
-    const initializeSpotify = async () => {
-      try {
-        // Check if we're returning from Spotify auth via query params (for development)
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const errorParam = urlParams.get('error');
-        
-        if (errorParam) {
-          setError(`Spotify authentication error: ${errorParam}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        if (code) {
-          console.log("Received auth code in URL params, processing callback...");
-          try {
-            await handleCallback(code);
-            // Remove the code from URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-            await loadCurrentTrack();
-            return;
-          } catch (error) {
-            console.error('Error handling callback:', error);
-            setError('Failed to authenticate with Spotify. Please try again.');
-            setIsLoading(false);
-            return;
-          }
-        }
+    if (isAuthenticatedState) {
+      loadCurrentTrack();
+    }
 
-        if (!isAuthenticated()) {
-          console.log("Not authenticated, redirecting to Spotify login...");
-          const authUrl = await getAuthUrl();
-          console.log("Auth URL:", authUrl);
-          window.location.href = authUrl;
-          return;
-        }
-
-        await loadCurrentTrack();
-      } catch (error) {
-        console.error('Error in Spotify initialization:', error);
-        setError('Something went wrong. Please try again.');
-        setIsLoading(false);
-      }
-    };
-
-    const loadCurrentTrack = async () => {
-      try {
-        console.log("Authenticated, fetching current track...");
-        const track = await getCurrentTrack();
-        setCurrentTrack(track);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching track:', error);
-        setError('Failed to load current track.');
-        setIsLoading(false);
-      }
-    };
-
-    initializeSpotify();
-
-    // Clean up listener when component unmounts
     return () => {
-      unlisten.then(unlistenFn => unlistenFn());
+      authListener.then((unlisten) => unlisten());
     };
   }, []);
 
-  if (isLoading) {
+  const loadCurrentTrack = async () => {
+    try {
+      setError(null);
+      const track = await getCurrentTrack();
+      setCurrentTrack(track);
+    } catch (error: any) {
+      console.error('Error fetching track:', error);
+      if (error.message.includes('log in again')) {
+        setIsAuthenticatedState(false);
+      }
+      setError('Failed to load current track.');
+    }
+  };
+
+  const handleLogin = async () => {
+    try {
+      setError(null);
+      await login();
+    } catch (error) {
+      console.error('Login failed', error);
+      setError('Failed to initiate login.');
+    }
+  };
+
+  if (!isAuthenticatedState) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+        <button
+          onClick={handleLogin}
+          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Login with Spotify
+        </button>
+        {error && <div className="text-red-500 mt-2">{error}</div>}
       </div>
     );
   }
@@ -115,7 +81,7 @@ const Player = () => {
   if (!currentTrack) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="text-white">No track playing</div>
+        <div className="text-white">Loading...</div>
       </div>
     );
   }
@@ -125,7 +91,7 @@ const Player = () => {
       <Background imageUrl={currentTrack.item?.album?.images[0]?.url} />
       <div className="relative z-10 p-4">
         <AlbumCover imageUrl={currentTrack.item?.album?.images[0]?.url} />
-        <Controls 
+        <Controls
           isPlaying={currentTrack.is_playing}
           trackName={currentTrack.item?.name}
           artistName={currentTrack.item?.artists[0]?.name}
