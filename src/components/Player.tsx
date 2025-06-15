@@ -121,7 +121,7 @@ const Player = () => {
 
   const handleSeek = async (positionMs: number) => {
     try {
-      await seek(positionMs);
+      await seek(parseInt(positionMs as any, 10));
       loadCurrentTrack();
     } catch (error) {
       console.error('Failed to seek', error);
