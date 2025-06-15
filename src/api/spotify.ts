@@ -2,6 +2,7 @@ import SpotifyWebApi from 'spotify-web-api-node';
 import { invoke } from '@tauri-apps/api/core';
 
 const spotifyApi = new SpotifyWebApi();
+const CLIENT_ID = '0d719dbb994743bc9a8af7a7d0b4f3f1';
 
 // This function will be called by the component once the token is received.
 export function setToken(accessToken: string, refreshToken?: string) {
@@ -90,8 +91,27 @@ export async function refreshAccessToken() {
     logout();
     throw new Error('No refresh token found, please login again.');
   }
-  logout();
-  throw new Error('Session expired. Please log in again.');
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: CLIENT_ID,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    logout();
+    throw new Error('Failed to refresh access token.');
+  }
+
+  setToken(data.access_token, data.refresh_token);
 }
 
 export function isAuthenticated() {

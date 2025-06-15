@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePalette } from 'color-thief-react';
 import {
   getCurrentTrack,
   isAuthenticated,
@@ -22,6 +23,11 @@ const Player = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentTrack, setCurrentTrack] = useState<any>(null);
   const navigate = useNavigate();
+
+  const imageUrl = currentTrack?.item?.album?.images[0]?.url;
+  const { data: palette } = usePalette(imageUrl, 2, 'hex', {
+    crossOrigin: 'anonymous',
+  });
 
   useEffect(() => {
     const authListener = listen('spotify-auth-token', (event: Event<AuthTokenPayload>) => {
@@ -151,7 +157,12 @@ const Player = () => {
   return (
     <div
       data-tauri-drag-region
-      className="w-full h-full rounded-xl flex flex-col items-center justify-center bg-black bg-opacity-50"
+      className="w-full h-full rounded-xl flex flex-col items-center justify-center"
+      style={{
+        background: palette
+          ? `linear-gradient(to bottom right, ${palette[0]}, ${palette[1]})`
+          : '#191414',
+      }}
     >
       <div className="absolute top-4 right-4">
         <button onClick={() => navigate('/settings')} className="text-white">

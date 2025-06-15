@@ -9,7 +9,10 @@
   },
   "app": {
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        "default"
+      ]
     },
     "windows": [
       {
@@ -19,7 +22,7 @@
         "width": 800,
         "height": 400,
         "decorations": false,
-        "transparent": true,
+        "transparent": false,
         "alwaysOnTop": true
       }
     ]
