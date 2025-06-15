@@ -2,15 +2,15 @@
 
 use axum::{
     extract::{Query, State},
-    response::{Html, IntoResponse},
-    routing::get,
+    response::{Html, IntoResponse, Json},
+    routing::{get, post},
     Router,
 };
 use oauth2::{
     basic::BasicClient, reqwest::async_http_client, AuthUrl, AuthorizationCode, ClientId,
-    CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl,
+    CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl, RefreshToken, TokenResponse,
 };
-use serde::Deserialize;
+use serde::{Deserialize};
 use std::{net::SocketAddr, sync::Arc};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -39,6 +39,7 @@ async fn login(state: tauri::State<'_, Arc<tokio::sync::Mutex<AppState>>>) -> Re
         .add_scope(Scope::new("user-read-currently-playing".to_string()))
         .add_scope(Scope::new("user-read-playback-state".to_string()))
         .add_scope(Scope::new("user-modify-playback-state".to_string()))
+        .add_scope(Scope::new("user-read-recently-played".to_string()))
         .url();
 
     state.csrf_token = Some(csrf_token.secret().to_string());
@@ -52,6 +53,11 @@ async fn login(state: tauri::State<'_, Arc<tokio::sync::Mutex<AppState>>>) -> Re
 struct AuthRequest {
     code: String,
     state: String,
+}
+
+#[derive(Deserialize)]
+struct RefreshTokenRequest {
+    refresh_token: String,
 }
 
 #[derive(Clone)]
@@ -72,7 +78,7 @@ async fn callback(
         app_state.pkce_verifier.take().unwrap()
     };
 
-    let token = state
+    let token_result = state
         .app_state
         .lock()
         .await
@@ -82,14 +88,36 @@ async fn callback(
         .request_async(async_http_client)
         .await;
 
-    if let Ok(token) = token {
+    if let Ok(token) = token_result {
         state
             .app_handle
             .emit("spotify-auth-token", &token)
             .expect("failed to emit token");
+        return Html("<h1>Authentication successful! You can close this window now.</h1>".to_string());
     }
 
-    Html("<h1>Authentication successful! You can close this window now.</h1>".to_string())
+    Html("<h1>Authentication failed.</h1>".to_string())
+}
+
+async fn refresh_token(
+    State(state): State<AxumState>,
+    Json(payload): Json<RefreshTokenRequest>,
+) -> impl IntoResponse {
+    let client = {
+        let app_state = state.app_state.lock().await;
+        app_state.client.clone()
+    };
+
+    let token_result = client
+        .exchange_refresh_token(&RefreshToken::new(payload.refresh_token))
+        .request_async(async_http_client)
+        .await;
+
+    if let Ok(token) = token_result {
+        return (axum::http::StatusCode::OK, Json(token)).into_response();
+    }
+
+    (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Failed to refresh token.</h1>".to_string())).into_response()
 }
 
 fn main() {
@@ -155,6 +183,7 @@ fn main() {
             tauri::async_runtime::spawn(async move {
                 let router = Router::new()
                     .route("/callback", get(callback))
+                    .route("/refresh-token", post(refresh_token))
                     .with_state(axum_state);
 
                 let addr = SocketAddr::from(([127, 0, 0, 1], 14700));

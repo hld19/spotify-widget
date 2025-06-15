@@ -76,13 +76,13 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek })
       <div
         ref={progressBarRef}
         onMouseDown={onMouseDown}
-        className="h-2 bg-white bg-opacity-20 rounded-full cursor-pointer group"
+        className="h-2 bg-black/10 dark:bg-white/20 rounded-full cursor-pointer group transition-colors"
       >
-        <div className="h-full bg-white rounded-full relative" style={{ width: `${progressPercentage}%` }}>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="h-full bg-neutral-800 dark:bg-white rounded-full relative transition-colors" style={{ width: `${progressPercentage}%` }}>
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-neutral-800 dark:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all" />
         </div>
       </div>
-      <div className="flex justify-between text-xs text-gray-300 mt-1">
+      <div className="flex justify-between text-xs text-neutral-600 dark:text-gray-300 mt-1 transition-colors">
         <span>{formatTime(currentProgress)}</span>
         <span>{formatTime(duration)}</span>
       </div>

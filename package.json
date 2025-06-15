@@ -11,6 +11,7 @@
     "generate-cert": "node scripts/generate-cert.js"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@tauri-apps/api": "^2.0.0-beta.13",
     "@tauri-apps/plugin-log": "^2.0.0-beta.4",
     "@tauri-apps/plugin-shell": "^2.0.0-beta.4",
