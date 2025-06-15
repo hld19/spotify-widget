@@ -2,7 +2,6 @@ import SpotifyWebApi from 'spotify-web-api-node';
 import { invoke } from '@tauri-apps/api/core';
 
 const spotifyApi = new SpotifyWebApi();
-const CLIENT_ID = '0d719dbb994743bc9a8af7a7d0b4f3f1';
 
 // This function will be called by the component once the token is received.
 export function setToken(accessToken: string, refreshToken?: string) {

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePalette } from 'color-thief-react';
 import { listen, Event } from '@tauri-apps/api/event';
 import {
   getCurrentTrack,
@@ -185,7 +184,6 @@ const Player = () => {
             progress={currentTrack.progress_ms}
             duration={currentTrack.item?.duration_ms}
             onSeek={handleSeek}
-            isPlaying={currentTrack.is_playing}
           />
           <div className="flex items-center justify-center space-x-8">
             <button onClick={handlePrevious} className="text-white opacity-70 hover:opacity-100">

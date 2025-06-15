@@ -4,7 +4,6 @@ interface ProgressBarProps {
   duration: number;
   progress: number;
   onSeek: (progress: number) => void;
-  isPlaying: boolean;
 }
 
 const formatTime = (ms: number) => {
@@ -14,7 +13,7 @@ const formatTime = (ms: number) => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek, isPlaying }) => {
+const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek }) => {
   const [isSeeking, setIsSeeking] = useState(false);
   const [dragProgress, setDragProgress] = useState<number | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -49,7 +48,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek, i
   );
 
   const onMouseUp = useCallback(
-    (e: MouseEvent) => {
+    () => {
       if (isSeeking) {
         const newProgress = dragProgress ?? progress;
         onSeek(newProgress);
