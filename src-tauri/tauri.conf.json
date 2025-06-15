@@ -19,10 +19,10 @@
         "fullscreen": false,
         "resizable": true,
         "title": "Spotify Widget",
-        "width": 800,
-        "height": 400,
+        "width": 350,
+        "height": 500,
         "decorations": false,
-        "transparent": false,
+        "transparent": true,
         "alwaysOnTop": true
       }
     ]
@@ -37,22 +37,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "plugins": {
-    "opener": {},
-    "oauth": {
-      "redirectUri": "tauri://auth",
-      "ports": [
-        14700,
-        14701
-      ]
-    },
-    "deepLink": {
-      "protocols": [
-        {
-          "scheme": "tauri-auth"
-        }
-      ]
-    }
   }
 }

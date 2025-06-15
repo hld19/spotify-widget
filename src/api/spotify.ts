@@ -85,33 +85,47 @@ export async function skipToPrevious() {
   }
 }
 
+export async function seek(positionMs: number) {
+  try {
+    await spotifyApi.seek(positionMs);
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      await refreshAccessToken();
+      return seek(positionMs);
+    }
+    throw error;
+  }
+}
+
 export async function refreshAccessToken() {
-  const refreshToken = localStorage.getItem('refresh_token');
+  const refreshToken = localStorage.getItem('spotify_refresh_token');
   if (!refreshToken) {
-    logout();
-    throw new Error('No refresh token found, please login again.');
+    console.log('No refresh token found, logging in');
+    await login();
+    return;
   }
 
-  const response = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: CLIENT_ID,
-    }),
-  });
+  try {
+    const response = await fetch('http://localhost:14700/refresh-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+      }),
+    });
 
-  const data = await response.json();
+    if (!response.ok) {
+      throw new Error('Failed to refresh access token.');
+    }
 
-  if (!response.ok) {
-    logout();
-    throw new Error('Failed to refresh access token.');
+    const data = await response.json();
+    setToken(data.access_token, data.refresh_token || refreshToken);
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    await login();
   }
-
-  setToken(data.access_token, data.refresh_token);
 }
 
 export function isAuthenticated() {
