@@ -2,15 +2,86 @@
 <html lang="en" class="bg-transparent">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="description" content="A beautiful, minimal Spotify widget for desktop" />
+    <meta name="theme-color" content="#10b981" />
+    <meta name="color-scheme" content="light dark" />
+    
+    <!-- Prevent caching issues -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <!-- Security -->
+    <meta name="robots" content="noindex, nofollow" />
+    
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" href="/vite.svg" />
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://api.spotify.com" crossorigin />
+    <link rel="preconnect" href="https://i.scdn.co" crossorigin />
+    
     <title>Spotify Widget</title>
+    
+    <!-- Prevent flash of unstyled content -->
+    <style>
+      * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+      
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        overflow: hidden;
+      }
+      
+      /* Loading spinner */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 16px;
+      }
+      
+      .dark .loading {
+        background: rgba(0, 0, 0, 0.4);
+      }
+      
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid #10b981;
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </head>
 
-  <body
-    class="select-none overflow-hidden bg-transparent font-sans subpixel-antialiased"
-  >
-    <div id="root"></div>
+  <body class="select-none overflow-hidden bg-transparent font-sans">
+    <div id="root">
+      <!-- Fallback loading state -->
+      <div class="loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

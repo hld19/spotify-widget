@@ -1,4 +1,4 @@
-import React, { createContext } from 'react';
+import { createContext } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import Player from './components/Player';
 import Settings from './components/Settings';

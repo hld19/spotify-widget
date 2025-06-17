@@ -15,6 +15,7 @@ const formatTime = (ms: number) => {
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek }) => {
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const [dragProgress, setDragProgress] = useState<number | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -24,8 +25,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek })
         const { left, width } = progressBarRef.current.getBoundingClientRect();
         const clickX = e.clientX - left;
         const seekRatio = Math.max(0, Math.min(1, clickX / width));
-        setDragProgress(seekRatio * duration);
-        return seekRatio * duration;
+        const newProgress = seekRatio * duration;
+        setDragProgress(newProgress);
+        return newProgress;
       }
       return 0;
     },
@@ -33,6 +35,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek })
   );
 
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
     e.stopPropagation();
     setIsSeeking(true);
     handleSeek(e);
@@ -60,31 +63,56 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek })
   );
 
   useEffect(() => {
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, [onMouseMove, onMouseUp]);
+    if (isSeeking) {
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+    }
+  }, [isSeeking, onMouseMove, onMouseUp]);
 
   const currentProgress = dragProgress ?? progress;
   const progressPercentage = duration > 0 ? (currentProgress / duration) * 100 : 0;
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-2">
       <div
         ref={progressBarRef}
         onMouseDown={onMouseDown}
-        className="h-2 bg-black/10 dark:bg-white/20 rounded-full cursor-pointer group transition-colors"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        className="relative h-2 bg-neutral-200/60 dark:bg-neutral-700/60 rounded-full cursor-pointer group transition-all duration-200 hover:h-3"
       >
-        <div className="h-full bg-neutral-800 dark:bg-white rounded-full relative transition-colors" style={{ width: `${progressPercentage}%` }}>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-neutral-800 dark:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all" />
+        {/* Background Track */}
+        <div className="absolute inset-0 bg-neutral-200/80 dark:bg-neutral-700/80 rounded-full" />
+        
+        {/* Progress Fill */}
+        <div 
+          className={`absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-200 ${
+            isHovering || isSeeking ? 'shadow-md' : ''
+          }`}
+          style={{ width: `${progressPercentage}%` }}
+        >
+          {/* Progress Thumb */}
+          <div 
+            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white border-2 border-green-500 rounded-full shadow-lg transition-all duration-200 ${
+              isHovering || isSeeking ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
+            }`}
+          />
         </div>
+        
+        {/* Hover Effect */}
+        {isHovering && (
+          <div className="absolute inset-0 bg-green-500/10 rounded-full animate-pulse" />
+        )}
       </div>
-      <div className="flex justify-between text-xs text-neutral-600 dark:text-gray-300 mt-1 transition-colors">
-        <span>{formatTime(currentProgress)}</span>
-        <span>{formatTime(duration)}</span>
+      
+      {/* Time Display */}
+      <div className="flex justify-between text-xs text-neutral-600 dark:text-neutral-400 font-medium transition-colors">
+        <span className="tabular-nums">{formatTime(currentProgress)}</span>
+        <span className="tabular-nums">{formatTime(duration)}</span>
       </div>
     </div>
   );
