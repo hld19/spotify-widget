@@ -1,121 +1,218 @@
+/**
+ * 🎛️ ProgressBar Component - Dynamic Theme Edition
+ * Ultra-smooth progress tracking with album-based colors
+ */
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 interface ProgressBarProps {
+  currentProgress: number;
   duration: number;
-  progress: number;
-  onSeek: (progress: number) => void;
+  isPlaying: boolean;
+  onSeek: (positionMs: number) => void;
+  className?: string;
 }
 
-const formatTime = (ms: number) => {
+function formatTime(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-};
+}
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ duration, progress, onSeek }) => {
-  const [isSeeking, setIsSeeking] = useState(false);
+export default function ProgressBar({
+  currentProgress,
+  duration,
+  isPlaying,
+  onSeek,
+  className = '',
+}: ProgressBarProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-  const [dragProgress, setDragProgress] = useState<number | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
-  const handleSeek = useCallback(
-    (e: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
-      if (progressBarRef.current) {
-        const { left, width } = progressBarRef.current.getBoundingClientRect();
-        const clickX = e.clientX - left;
-        const seekRatio = Math.max(0, Math.min(1, clickX / width));
-        const newProgress = seekRatio * duration;
-        setDragProgress(newProgress);
-        return newProgress;
-      }
-      return 0;
-    },
-    [duration]
-  );
+  // Use drag progress when dragging, otherwise use real-time progress
+  const displayProgress = isDragging ? dragProgress : currentProgress;
+  const progressPercent = duration > 0 ? (displayProgress / duration) * 100 : 0;
 
-  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsSeeking(true);
-    handleSeek(e);
-  };
+  // Calculate position from mouse/touch event
+  const getProgressFromEvent = useCallback((event: MouseEvent | TouchEvent) => {
+    if (!progressBarRef.current) return 0;
 
-  const onMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (isSeeking) {
-        handleSeek(e);
-      }
-    },
-    [isSeeking, handleSeek]
-  );
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+    const x = clientX - rect.left;
+    const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    
+    return (percent / 100) * duration;
+  }, [duration]);
 
-  const onMouseUp = useCallback(
-    () => {
-      if (isSeeking) {
-        const newProgress = dragProgress ?? progress;
-        onSeek(newProgress);
-        setIsSeeking(false);
-        setDragProgress(null);
-      }
-    },
-    [isSeeking, dragProgress, onSeek, progress]
-  );
+  // Mouse handlers
+  const handleMouseDown = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    setIsDragging(true);
+    
+    const newProgress = getProgressFromEvent(event.nativeEvent);
+    setDragProgress(newProgress);
+  }, [getProgressFromEvent]);
 
+  const handleMouseMove = useCallback((event: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const newProgress = getProgressFromEvent(event);
+    setDragProgress(newProgress);
+  }, [isDragging, getProgressFromEvent]);
+
+  const handleMouseUp = useCallback((event: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const finalProgress = getProgressFromEvent(event);
+    setIsDragging(false);
+    
+    // Seek to the final position
+    onSeek(Math.round(finalProgress));
+  }, [isDragging, getProgressFromEvent, onSeek]);
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((event: React.TouchEvent) => {
+    event.preventDefault();
+    setIsDragging(true);
+    
+    const newProgress = getProgressFromEvent(event.nativeEvent);
+    setDragProgress(newProgress);
+  }, [getProgressFromEvent]);
+
+  const handleTouchMove = useCallback((event: TouchEvent) => {
+    if (!isDragging) return;
+    event.preventDefault();
+    
+    const newProgress = getProgressFromEvent(event);
+    setDragProgress(newProgress);
+  }, [isDragging, getProgressFromEvent]);
+
+  const handleTouchEnd = useCallback((event: TouchEvent) => {
+    if (!isDragging) return;
+    event.preventDefault();
+    
+    const finalProgress = getProgressFromEvent(event);
+    setIsDragging(false);
+    
+    // Seek to the final position
+    onSeek(Math.round(finalProgress));
+  }, [isDragging, getProgressFromEvent, onSeek]);
+
+  // Click to seek (when not dragging)
+  const handleClick = useCallback((event: React.MouseEvent) => {
+    if (isDragging) return;
+    
+    const newProgress = getProgressFromEvent(event.nativeEvent);
+    onSeek(Math.round(newProgress));
+  }, [isDragging, getProgressFromEvent, onSeek]);
+
+  // Global mouse/touch event listeners
   useEffect(() => {
-    if (isSeeking) {
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd, { passive: false });
+      
       return () => {
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [isSeeking, onMouseMove, onMouseUp]);
-
-  const currentProgress = dragProgress ?? progress;
-  const progressPercentage = duration > 0 ? (currentProgress / duration) * 100 : 0;
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   return (
-    <div className="w-full space-y-2">
+    <div className={`flex items-center gap-3 ${className}`}>
+      {/* Current Time */}
+      <div 
+        className="text-xs font-mono min-w-[40px] text-right"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        {formatTime(displayProgress)}
+      </div>
+      
+      {/* Progress Bar Container */}
       <div
         ref={progressBarRef}
-        onMouseDown={onMouseDown}
+        className={`
+          flex-1 cursor-pointer relative transition-all duration-150 ease-out
+          ${isHovering || isDragging ? 'h-3' : 'h-2'}
+        `}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onClick={handleClick}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
-        className="relative h-2 bg-neutral-200/60 dark:bg-neutral-700/60 rounded-full cursor-pointer group transition-all duration-200 hover:h-3"
+        style={{
+          backgroundColor: 'var(--color-background-secondary)',
+          borderRadius: '9999px',
+        }}
       >
         {/* Background Track */}
-        <div className="absolute inset-0 bg-neutral-200/80 dark:bg-neutral-700/80 rounded-full" />
+        <div 
+          className="absolute inset-0 rounded-full" 
+          style={{ 
+            backgroundColor: isDragging ? 'var(--color-border)' : 'var(--color-background-secondary)',
+            opacity: 0.6,
+          }}
+        />
         
         {/* Progress Fill */}
-        <div 
-          className={`absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-200 ${
-            isHovering || isSeeking ? 'shadow-md' : ''
-          }`}
-          style={{ width: `${progressPercentage}%` }}
-        >
-          {/* Progress Thumb */}
-          <div 
-            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white border-2 border-green-500 rounded-full shadow-lg transition-all duration-200 ${
-              isHovering || isSeeking ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
-            }`}
-          />
-        </div>
+        <div
+          className="absolute left-0 top-0 h-full rounded-full transition-all duration-150"
+          style={{ 
+            width: `${Math.max(0, Math.min(100, progressPercent))}%`,
+            background: isDragging 
+              ? `linear-gradient(90deg, var(--color-accent) 0%, var(--color-secondary) 100%)`
+              : isPlaying 
+                ? `linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%)`
+                : 'var(--color-text-muted)',
+            boxShadow: isPlaying && !isDragging 
+              ? `0 0 10px var(--color-primary)40` 
+              : 'none',
+          }}
+        />
         
-        {/* Hover Effect */}
-        {isHovering && (
-          <div className="absolute inset-0 bg-green-500/10 rounded-full animate-pulse" />
+        {/* Drag Handle */}
+        <div
+          className={`
+            absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-lg
+            transition-all duration-150 ease-out
+            ${isHovering || isDragging ? 'opacity-100 scale-110' : 'opacity-0 scale-75'}
+          `}
+          style={{ 
+            left: `calc(${Math.max(0, Math.min(100, progressPercent))}% - 6px)`,
+            backgroundColor: '#ffffff',
+            boxShadow: `0 2px 8px var(--color-shadow), 0 0 0 2px var(--color-primary)`,
+          }}
+        />
+        
+        {/* Active glow effect when playing */}
+        {isPlaying && !isDragging && (
+          <div
+            className="absolute left-0 top-0 h-full rounded-full opacity-30 animate-pulse"
+            style={{ 
+              width: `${Math.max(0, Math.min(100, progressPercent))}%`,
+              background: `linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%)`,
+              filter: 'blur(1px)',
+            }}
+          />
         )}
       </div>
       
-      {/* Time Display */}
-      <div className="flex justify-between text-xs text-neutral-600 dark:text-neutral-400 font-medium transition-colors">
-        <span className="tabular-nums">{formatTime(currentProgress)}</span>
-        <span className="tabular-nums">{formatTime(duration)}</span>
+      {/* Duration */}
+      <div 
+        className="text-xs font-mono min-w-[40px]"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        {formatTime(duration)}
       </div>
     </div>
   );
-};
-
-export default ProgressBar; 
+} 

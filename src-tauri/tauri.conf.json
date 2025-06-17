@@ -19,15 +19,16 @@
         "fullscreen": false,
         "resizable": true,
         "title": "Spotify Widget",
-        "width": 600,
-        "height": 280,
-        "minWidth": 500,
-        "minHeight": 200,
+        "width": 620,
+        "height": 300,
+        "minWidth": 520,
+        "minHeight": 220,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": true,
-        "dragDropEnabled": false
+        "dragDropEnabled": false,
+        "shadow": false
       }
     ]
   },

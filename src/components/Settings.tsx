@@ -1,93 +1,263 @@
-import { useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+/**
+ * 🎵 Settings Component - Dynamic Theme Edition  
+ * Beautiful settings interface with album-based theming
+ */
+
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { 
+  SunIcon, 
+  MoonIcon, 
+  PowerIcon,
+  ArrowLeftIcon,
+  ChevronRightIcon,
+  PaintBrushIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline';
+import { useTheme } from '../hooks/useTheme';
 import { logout } from '../api/spotify';
-import { ThemeContext } from '../App';
-import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 
-const Settings = () => {
-  const navigate = useNavigate();
-  const themeContext = useContext(ThemeContext);
+export default function Settings() {
+  const {
+    isDarkMode,
+    currentTheme,
+    cssVariables,
+    toggleTheme,
+    isExtracting
+  } = useTheme();
 
-  if (!themeContext) {
-    return null; // or a loading state
-  }
-
-  const { theme, setTheme } = themeContext;
+  // Apply CSS variables to the document root
+  useEffect(() => {
+    const root = document.documentElement;
+    Object.entries(cssVariables).forEach(([property, value]) => {
+      root.style.setProperty(property, value);
+    });
+  }, [cssVariables]);
 
   const handleLogout = () => {
     logout();
-    navigate('/');
-    // Force a reload to clear all state
-    window.location.reload();
-  };
-
-  const getButtonClass = (buttonTheme: 'light' | 'dark' | 'system') => {
-    const base = 'px-4 py-2 rounded-xl transition-all duration-200 text-sm font-medium hover:scale-105';
-    if (theme === buttonTheme) {
-      return `${base} bg-green-500 text-white shadow-lg`;
-    }
-    return `${base} bg-neutral-200/80 dark:bg-neutral-700/80 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white`;
+    // Navigate back to main view
+    window.location.href = '/';
   };
 
   return (
     <div 
-      data-tauri-drag-region 
-      className="w-full h-full flex flex-col bg-white/90 dark:bg-black/40 backdrop-blur-xl rounded-2xl p-6 text-neutral-900 dark:text-white transition-all duration-300 shadow-xl border border-white/20 dark:border-white/10"
+      className="w-full h-full rounded-3xl overflow-hidden border shadow-2xl relative"
+      style={{
+        background: `linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.backgroundSecondary} 100%)`,
+        color: currentTheme.text,
+        borderColor: currentTheme.border,
+        boxShadow: `0 25px 50px -12px ${currentTheme.shadow}`,
+      }}
     >
+      {/* Dynamic background gradient */}
+      <div 
+        className="absolute inset-0 opacity-5"
+        style={{
+          background: `radial-gradient(circle at 30% 30%, ${currentTheme.primary} 0%, transparent 60%), 
+                      radial-gradient(circle at 70% 70%, ${currentTheme.secondary} 0%, transparent 60%)`,
+        }}
+      />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center space-x-2 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors p-2 -m-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-          <span className="text-sm font-medium">Back</span>
-        </button>
-        <h1 className="text-xl font-bold">Settings</h1>
-        <div className="w-16"></div> {/* Spacer for centering */}
+      <div 
+        className="flex items-center justify-between p-6 border-b relative z-10"
+        style={{ borderColor: currentTheme.border }}
+      >
+        <div className="flex items-center space-x-3">
+          <Link
+            to="/"
+            className="p-2 transition-colors rounded-lg"
+            style={{ color: currentTheme.textMuted }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = currentTheme.text;
+              e.currentTarget.style.backgroundColor = `${currentTheme.backgroundSecondary}80`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = currentTheme.textMuted;
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </Link>
+          <h1 className="text-xl font-bold" style={{ color: currentTheme.text }}>
+            Settings
+          </h1>
+        </div>
+
+        {/* Theme extraction indicator */}
+        {isExtracting && (
+          <div className="flex items-center space-x-2">
+            <SparklesIcon className="w-4 h-4 animate-pulse" style={{ color: currentTheme.primary }} />
+            <span className="text-xs" style={{ color: currentTheme.textMuted }}>
+              Extracting colors...
+            </span>
+          </div>
+        )}
       </div>
-      
+
       {/* Content */}
-      <div className="flex-grow flex flex-col justify-center space-y-8">
-        {/* Theme Section */}
-        <div className="text-center">
-          <h2 className="text-lg font-semibold mb-4 text-neutral-800 dark:text-neutral-200">Appearance</h2>
-          <div className="flex justify-center space-x-3">
-            <button onClick={() => setTheme('light')} className={getButtonClass('light')}>
-              ☀️ Light
+      <div className="p-6 space-y-6 relative z-10">
+        
+        {/* Theme Settings */}
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <PaintBrushIcon className="w-5 h-5" style={{ color: currentTheme.primary }} />
+            <h2 className="text-lg font-semibold" style={{ color: currentTheme.text }}>
+              Appearance
+            </h2>
+          </div>
+          
+          <div className="space-y-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="w-full flex items-center justify-between p-4 rounded-xl transition-all duration-200 border"
+              style={{
+                backgroundColor: `${currentTheme.backgroundSecondary}60`,
+                borderColor: `${currentTheme.border}80`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = `${currentTheme.backgroundSecondary}80`;
+                e.currentTarget.style.borderColor = currentTheme.primary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = `${currentTheme.backgroundSecondary}60`;
+                e.currentTarget.style.borderColor = `${currentTheme.border}80`;
+              }}
+            >
+              <div className="flex items-center space-x-3">
+                {isDarkMode ? (
+                  <MoonIcon className="w-5 h-5" style={{ color: currentTheme.primary }} />
+                ) : (
+                  <SunIcon className="w-5 h-5" style={{ color: currentTheme.primary }} />
+                )}
+                <span className="font-medium" style={{ color: currentTheme.text }}>
+                  {isDarkMode ? 'Dark Mode' : 'Light Mode'}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm" style={{ color: currentTheme.textMuted }}>
+                  Tap to switch
+                </span>
+                <ChevronRightIcon className="w-4 h-4" style={{ color: currentTheme.textMuted }} />
+              </div>
             </button>
-            <button onClick={() => setTheme('dark')} className={getButtonClass('dark')}>
-              🌙 Dark
-            </button>
-            <button onClick={() => setTheme('system')} className={getButtonClass('system')}>
-              💻 System
-            </button>
+
+            {/* Color Info */}
+            <div 
+              className="p-4 rounded-xl border"
+              style={{
+                backgroundColor: `${currentTheme.backgroundSecondary}40`,
+                borderColor: `${currentTheme.border}60`,
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium" style={{ color: currentTheme.textSecondary }}>
+                  Dynamic Colors
+                </span>
+                <div className="flex space-x-1">
+                  <div 
+                    className="w-3 h-3 rounded-full border"
+                    style={{ 
+                      backgroundColor: currentTheme.primary,
+                      borderColor: currentTheme.border,
+                    }}
+                  />
+                  <div 
+                    className="w-3 h-3 rounded-full border"
+                    style={{ 
+                      backgroundColor: currentTheme.secondary,
+                      borderColor: currentTheme.border,
+                    }}
+                  />
+                  <div 
+                    className="w-3 h-3 rounded-full border"
+                    style={{ 
+                      backgroundColor: currentTheme.accent,
+                      borderColor: currentTheme.border,
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="text-xs" style={{ color: currentTheme.textMuted }}>
+                Colors automatically adapt to your current album artwork
+              </p>
+            </div>
           </div>
         </div>
-        
-        {/* Logout Section */}
-        <div className="text-center">
-          <h2 className="text-lg font-semibold mb-4 text-neutral-800 dark:text-neutral-200">Account</h2>
+
+        {/* App Info */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold" style={{ color: currentTheme.text }}>
+            About
+          </h2>
+          <div 
+            className="rounded-xl p-4 space-y-3 border"
+            style={{
+              backgroundColor: `${currentTheme.backgroundSecondary}40`,
+              borderColor: `${currentTheme.border}60`,
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span style={{ color: currentTheme.textMuted }}>Version</span>
+              <span style={{ color: currentTheme.text }}>2.0.0</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span style={{ color: currentTheme.textMuted }}>Built with</span>
+              <span style={{ color: currentTheme.text }}>Tauri & React</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span style={{ color: currentTheme.textMuted }}>API</span>
+              <span style={{ color: currentTheme.text }}>Spotify Web API</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span style={{ color: currentTheme.textMuted }}>Theme Engine</span>
+              <span style={{ color: currentTheme.text }}>Dynamic Colors</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Account Actions */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold" style={{ color: currentTheme.text }}>
+            Account
+          </h2>
           <button
             onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+            className="w-full flex items-center justify-between p-4 rounded-xl transition-all duration-200 border"
+            style={{
+              backgroundColor: `${currentTheme.accent}10`,
+              borderColor: `${currentTheme.accent}30`,
+              color: currentTheme.accent,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = `${currentTheme.accent}20`;
+              e.currentTarget.style.borderColor = `${currentTheme.accent}50`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = `${currentTheme.accent}10`;
+              e.currentTarget.style.borderColor = `${currentTheme.accent}30`;
+            }}
           >
-            🚪 Disconnect Spotify
+            <div className="flex items-center space-x-3">
+              <PowerIcon className="w-5 h-5" />
+              <span className="font-medium">Disconnect Spotify</span>
+            </div>
+            <ChevronRightIcon className="w-4 h-4" />
           </button>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-            This will log you out and clear all stored data
+        </div>
+
+        {/* Footer */}
+        <div 
+          className="pt-4 border-t"
+          style={{ borderColor: currentTheme.border }}
+        >
+          <p className="text-center text-sm" style={{ color: currentTheme.textMuted }}>
+            Made with ❤️ for music lovers
           </p>
         </div>
       </div>
-      
-      {/* Footer */}
-      <div className="text-center mt-6 pt-4 border-t border-neutral-200/50 dark:border-neutral-700/50">
-        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          Spotify Widget v1.0.0
-        </p>
-      </div>
     </div>
   );
-};
-
-export default Settings; 
+} 

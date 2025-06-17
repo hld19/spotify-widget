@@ -1,30 +1,23 @@
-import { createContext } from 'react';
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
+/**
+ * 🎵 Spotify Widget App - Completely Revamped
+ * Clean, beautiful, and bulletproof main application
+ */
+
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Player from './components/Player';
 import Settings from './components/Settings';
-import { useTheme } from './hooks/useTheme';
 import './App.css';
 
-type ThemeContextType = {
-  theme: 'light' | 'dark' | 'system';
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
-};
-
-export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-function App() {
-  const { theme, setTheme } = useTheme();
-
+export default function App() {
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <div className="w-full h-full">
       <Router>
         <Routes>
           <Route path="/" element={<Player />} />
+          <Route path="/player" element={<Player />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Router>
-    </ThemeContext.Provider>
+    </div>
   );
 }
-
-export default App;

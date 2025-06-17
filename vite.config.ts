@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // https://vitejs.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig(({
   plugins: [react()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
@@ -21,21 +21,17 @@ export default defineConfig(async () => ({
   server: {
     port: 3000,
     strictPort: true,
-    host: "127.0.0.1",
-    /* https: {
-      key: readFileSync(resolve(__dirname, '.cert/key.pem')),
-      cert: readFileSync(resolve(__dirname, '.cert/cert.pem')),
-    }, */
-    hmr: host
-      ? {
-          protocol: "wss",
-          host,
-          port: 3001,
-        }
-      : undefined,
+    host: host || "127.0.0.1",
+    cors: true,
+    hmr: host ? { protocol: "ws", host, port: 3001 } : undefined,
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+  },
+  build: {
+    target: "chrome105",
+    minify: "esbuild",
+    sourcemap: false,
   },
 }));
