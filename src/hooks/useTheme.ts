@@ -253,6 +253,24 @@ export function useTheme() {
     '--color-shadow': currentTheme.shadow,
   };
 
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  const updateCustomTheme = (customColors: ColorPalette) => {
+    // Save custom theme to localStorage
+    localStorage.setItem('customTheme', JSON.stringify(customColors));
+    
+    // Update the current theme
+    Object.entries(customColors).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(`--color-${key}`, value);
+    });
+    
+    // Update state to trigger re-renders
+    setIsDarkMode(prev => !prev);
+    setTimeout(() => setIsDarkMode(prev => !prev), 0);
+  };
+
   return {
     isDarkMode,
     setIsDarkMode,
@@ -261,7 +279,8 @@ export function useTheme() {
     updateTheme,
     isExtracting,
     cssVariables,
-    toggleTheme: () => setIsDarkMode(!isDarkMode),
+    toggleTheme,
+    updateCustomTheme
   };
 }
 

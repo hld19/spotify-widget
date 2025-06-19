@@ -23,6 +23,7 @@ interface SpotifyTrack {
     images: { url: string; width: number; height: number }[];
   };
   duration_ms: number;
+  uri: string;
 }
 
 interface SpotifyPlaybackState {
@@ -30,6 +31,7 @@ interface SpotifyPlaybackState {
     id: string;
     is_active: boolean;
     name: string;
+    volume_percent?: number;
   };
   shuffle_state: boolean;
   repeat_state: string;
@@ -39,6 +41,27 @@ interface SpotifyPlaybackState {
   item: SpotifyTrack;
   currently_playing_type: string;
   is_playing: boolean;
+}
+
+interface SpotifyPlaylistItem {
+  id: string;
+  name: string;
+  description: string;
+  images: { url: string; width: number; height: number }[];
+  tracks: {
+    total: number;
+    href: string;
+  };
+  uri: string;
+}
+
+interface SpotifyRecentlyPlayedItem {
+  track: SpotifyTrack;
+  played_at: string;
+  context: {
+    type: string;
+    uri: string;
+  };
 }
 
 // Simple state management
@@ -70,7 +93,9 @@ class SpotifyAPI {
       localStorage.setItem('spotify_refresh_token', token.refresh_token);
     }
     localStorage.setItem('spotify_access_token', token.access_token);
-    localStorage.setItem('spotify_token_expires', (Date.now() + token.expires_in * 1000).toString());
+    // Save token expiration for 30 days
+    const expirationTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
+    localStorage.setItem('spotify_token_expires', expirationTime.toString());
   }
 
   private async setupAuthListener() {
@@ -166,13 +191,29 @@ class SpotifyAPI {
       return this.request(endpoint, options);
     }
 
+    // Handle 204 No Content response (no active playback)
+    if (response.status === 204) {
+      return null as any;
+    }
+
     if (!response.ok) {
       const error = await response.text();
       console.error('❌ API Error:', response.status, error);
       throw new Error(`Spotify API error: ${response.status}`);
     }
 
-    return response.json();
+    // Check if response has content before parsing JSON
+    const contentLength = response.headers.get('content-length');
+    if (contentLength === '0' || response.status === 204) {
+      return null as any;
+    }
+
+    try {
+      return await response.json();
+    } catch (e) {
+      // If JSON parsing fails, return null (empty response)
+      return null as any;
+    }
   }
 
   private async refreshAccessToken() {
@@ -211,8 +252,36 @@ class SpotifyAPI {
     }
   }
 
-  play = async (contextUri?: string): Promise<void> => {
-    const body = contextUri ? { context_uri: contextUri } : {};
+  play = async (contextUri?: string, uris?: string[]): Promise<void> => {
+    let body: any = {};
+    
+    if (contextUri) {
+      body.context_uri = contextUri;
+    } else if (uris && uris.length > 0) {
+      body.uris = uris;
+    }
+    
+    await this.request('/me/player/play', {
+      method: 'PUT',
+      body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  playTrack = async (trackUri: string): Promise<void> => {
+    // Ensure we have the full URI format
+    const uri = trackUri.startsWith('spotify:track:') ? trackUri : `spotify:track:${trackUri}`;
+    await this.request('/me/player/play', {
+      method: 'PUT',
+      body: JSON.stringify({ uris: [uri] }),
+    });
+  }
+
+  playContext = async (contextUri: string, offset?: number): Promise<void> => {
+    const body: any = { context_uri: contextUri };
+    if (offset !== undefined) {
+      body.offset = { position: offset };
+    }
+    
     await this.request('/me/player/play', {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -252,6 +321,141 @@ class SpotifyAPI {
       method: 'PUT',
     });
   }
+
+  // New methods for enhanced functionality
+  getRecentlyPlayed = async (limit: number = 20): Promise<SpotifyRecentlyPlayedItem[]> => {
+    try {
+      const response = await this.request<{ items: SpotifyRecentlyPlayedItem[] }>(
+        `/me/player/recently-played?limit=${limit}`
+      );
+      return response?.items || [];
+    } catch (error) {
+      console.error('Error getting recently played:', error);
+      return [];
+    }
+  }
+
+  getUserPlaylists = async (limit: number = 50): Promise<SpotifyPlaylistItem[]> => {
+    try {
+      const response = await this.request<{ items: SpotifyPlaylistItem[] }>(
+        `/me/playlists?limit=${limit}`
+      );
+      return response?.items || [];
+    } catch (error) {
+      console.error('Error getting playlists:', error);
+      return [];
+    }
+  }
+
+  getPlaylistTracks = async (playlistId: string): Promise<SpotifyTrack[]> => {
+    try {
+      const response = await this.request<{ items: Array<{ track: SpotifyTrack }> }>(
+        `/playlists/${playlistId}/tracks`
+      );
+      return response?.items?.map(item => item.track).filter(track => track !== null) || [];
+    } catch (error) {
+      console.error('Error getting playlist tracks:', error);
+      return [];
+    }
+  }
+
+  setShuffle = async (state: boolean): Promise<void> => {
+    await this.request(`/me/player/shuffle?state=${state}`, { method: 'PUT' });
+  }
+
+  setRepeat = async (state: 'track' | 'context' | 'off'): Promise<void> => {
+    await this.request(`/me/player/repeat?state=${state}`, { method: 'PUT' });
+  }
+
+  getDevices = async () => {
+    try {
+      const response = await this.request<{ devices: Array<{
+        id: string;
+        is_active: boolean;
+        name: string;
+        type: string;
+        volume_percent: number;
+      }> }>('/me/player/devices');
+      return response.devices;
+    } catch (error) {
+      console.error('Error getting devices:', error);
+      return [];
+    }
+  }
+
+  transferPlayback = async (deviceId: string, play: boolean = true): Promise<void> => {
+    await this.request('/me/player', {
+      method: 'PUT',
+      body: JSON.stringify({
+        device_ids: [deviceId],
+        play
+      })
+    });
+  }
+
+  search = async (query: string, types: string[] = ['track'], limit: number = 20) => {
+    try {
+      const typeString = types.join(',');
+      const response = await this.request<any>(
+        `/search?q=${encodeURIComponent(query)}&type=${typeString}&limit=${limit}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Error searching:', error);
+      return null;
+    }
+  }
+
+  addToQueue = async (uri: string): Promise<void> => {
+    await this.request(`/me/player/queue?uri=${uri}`, { method: 'POST' });
+  }
+
+  async getQueue(): Promise<any> {
+    const response = await this.request<any>('/me/player/queue');
+    if (response.status === 204) {
+      return { queue: [] };
+    }
+    return response.json();
+  }
+
+  async saveTrack(trackId: string, save: boolean = true): Promise<void> {
+    const method = save ? 'PUT' : 'DELETE';
+    await this.request(`/me/tracks?ids=${trackId}`, {
+      method,
+    });
+  }
+
+  async checkSavedTracks(trackIds: string[]): Promise<boolean[]> {
+    const response = await this.request<boolean[]>(
+      `/me/tracks/contains?ids=${trackIds.join(',')}`
+    );
+    return response;
+  }
+
+  async getRecommendations(trackIds: string[], limit: number = 20): Promise<any> {
+    const seedTracks = trackIds.slice(0, 5).join(','); // API limits to 5 seed tracks
+    return this.request<any>(`/recommendations?seed_tracks=${seedTracks}&limit=${limit}`);
+  }
+
+  async getTrackFeatures(trackId: string): Promise<any> {
+    return this.request<any>(`/audio-features/${trackId}`);
+  }
+
+  async getRelatedArtists(artistId: string): Promise<any> {
+    return this.request<any>(`/artists/${artistId}/related-artists`);
+  }
+
+  async getArtistTopTracks(artistId: string, market: string = 'US'): Promise<any> {
+    return this.request<any>(`/artists/${artistId}/top-tracks?market=${market}`);
+  }
+
+  async getAlbum(albumId: string): Promise<any> {
+    return this.request<any>(`/albums/${albumId}`);
+  }
+
+  async getArtist(artistId: string): Promise<any> {
+    return this.request<any>(`/artists/${artistId}`);
+  }
 }
 
 // Export singleton instance
@@ -263,8 +467,31 @@ export const logout = spotify.logout;
 export const isAuthenticated = spotify.isAuthenticated;
 export const getCurrentPlayback = spotify.getCurrentPlayback;
 export const play = spotify.play;
+export const playTrack = spotify.playTrack;
+export const playContext = spotify.playContext;
 export const pause = spotify.pause;
 export const skipToNext = spotify.skipToNext;
 export const skipToPrevious = spotify.skipToPrevious;
 export const seek = spotify.seek;
 export const setVolume = spotify.setVolume;
+export const getRecentlyPlayed = spotify.getRecentlyPlayed;
+export const getUserPlaylists = spotify.getUserPlaylists;
+export const getPlaylistTracks = spotify.getPlaylistTracks;
+export const setShuffle = spotify.setShuffle;
+export const setRepeat = spotify.setRepeat;
+export const getDevices = spotify.getDevices;
+export const transferPlayback = spotify.transferPlayback;
+export const search = spotify.search;
+export const addToQueue = spotify.addToQueue;
+export const getQueue = spotify.getQueue;
+export const saveTrack = spotify.saveTrack;
+export const checkSavedTracks = spotify.checkSavedTracks;
+export const getRecommendations = spotify.getRecommendations;
+export const getTrackFeatures = spotify.getTrackFeatures;
+export const getRelatedArtists = spotify.getRelatedArtists;
+export const getArtistTopTracks = spotify.getArtistTopTracks;
+export const getAlbum = spotify.getAlbum;
+export const getArtist = spotify.getArtist;
+
+// Export types
+export type { SpotifyTrack, SpotifyPlaybackState, SpotifyPlaylistItem, SpotifyRecentlyPlayedItem };

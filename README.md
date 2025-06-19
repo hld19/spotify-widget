@@ -2,58 +2,86 @@
 
 <div align="center">
 
-**A modern, elegant, and minimalistic Spotify widget for desktop environments.**
+**A modern, feature-rich Spotify controller widget for desktop environments.**
 
-*Built with a focus on performance, aesthetics, and a native desktop experience.*
+*Built with performance, aesthetics, and enhanced functionality in mind.*
 
 </div>
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#️-architecture) • [Performance](#-performance)
+[Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Performance](#performance)
 
 ---
 
 ## Table of Contents
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Quick Start](#-quick-start)
-- [Configuration](#️-configuration)
-- [Architecture](#️-architecture)
-- [Performance](#-performance)
-- [Troubleshooting](#-troubleshooting)
-- [License](#-license)
+- [Overview](#overview)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Performance](#performance)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ---
 
 ## Overview
 
-This project is a floating desktop widget for controlling Spotify playback. It provides a beautiful and unobtrusive interface that lets you manage your music without needing the full Spotify application open.
+This project is an advanced desktop widget for controlling Spotify playback with extended functionality. It provides a beautiful, responsive interface that allows you to not only control current playback but also browse and play from your recently played tracks, playlists, search for music, and manage playback devices.
 
-The widget is built using Tauri, React, and TypeScript, resulting in a lightweight, secure, and cross-platform application that feels native on Windows, macOS, and Linux. It features a transparent, glassmorphism-style UI with both light and dark modes, responsive layouts for collapsed and expanded views, and smooth animations.
+The widget is built using Tauri, React, and TypeScript, resulting in a lightweight, secure, and cross-platform application that feels native on Windows, macOS, and Linux. It features a modern horizontal layout with tabs, adaptive theming based on album artwork, and comprehensive playback controls.
 
 ## Features
 
-### UI and UX
+### Core Playback
+- Real-time Spotify playback control (play, pause, skip, previous)
+- Volume control with visual feedback
+- Shuffle and repeat mode toggles
+- Progress bar with seek functionality
+- Device selection and transfer
 
-- **Floating, Transparent Window**: A borderless, always-on-top window that blends with your desktop.
-- **Glassmorphism Design**: Frosted glass effect for a modern aesthetic.
-- **Light and Dark Modes**: A theme system that respects your system settings or can be set manually.
-- **Adaptive Layout**: The widget dynamically resizes between expanded and collapsed views with smooth animations.
-- **Draggable Interface**: The entire widget can be moved anywhere on the screen.
-- **Native Feel**: Designed to feel like an integrated part of the desktop environment.
+### Advanced UI/UX
+- **Mini Player Mode** - Ultra-compact view for minimal screen usage
+- **Multiple Tabs** - Now Playing, Recent, Playlists, Search, Devices, Stats, Queue, Discover
+- **Theme Customization** - 5 preset themes + full custom color control
+- **Compact Mode** - Reduce UI element sizes for smaller screens
+- **Gesture Controls** - Swipe navigation, pinch zoom, double tap controls
+- **Drag & Drop** - Draggable window with custom positioning presets
 
-### Spotify Integration
+### Smart Features
+- **Recommendations Engine** - Discover similar tracks based on current playback
+- **Track History & Statistics** - Local tracking with play counts and listening insights
+- **Sleep Timer** - Auto-pause after set duration (15min to 2 hours)
+- **Smart Home Integration** - Voice commands, MIDI controller, gamepad support
+- **Collaborative Sessions** - Listen together with friends, shared control
 
-- **Real-time Playback Sync**: Displays the currently playing track or podcast with updated progress.
-- **Full Playback Controls**: Play, pause, next, previous, and a draggable seek bar.
-- **Secure Authentication**: Utilizes the secure OAuth 2.0 PKCE flow to connect to your Spotify account.
-- **Automatic Token Refresh**: The session stays active in the background without requiring repeated logins.
+### Audio Enhancement
+- **10-Band Equalizer** - With 9 presets (Rock, Pop, Jazz, etc.)
+- **Audio Settings** - Crossfade, normalization, gapless playback
+- **Playback Speed Control** - For podcasts (0.5x to 2.0x)
+- **Visual Feedback** - Animated music visualizer
 
-### Desktop Experience
+### Content Features
+- **Lyrics Display** - Synchronized lyrics viewer (provider integration ready)
+- **Queue Management** - View and manage upcoming tracks
+- **Advanced Search** - Search tracks, artists, albums, playlists
+- **Podcast Enhancements** - Skip intervals, bookmarks, chapter navigation
+- **Social Sharing** - Share current track via native share or clipboard
 
-- **Cross-Platform**: A single codebase that runs on Windows, macOS, and Linux.
-- **Low Resource Usage**: Built with Rust and webviews for a minimal memory and CPU footprint compared to Electron-based apps.
-- **Global Hotkeys**: Control playback (next/previous) and close the app from anywhere in the OS.
+### Productivity
+- **Keyboard Shortcuts** - Comprehensive shortcuts with visual guide
+- **Notification System** - Smart notifications with different priority levels
+- **Auto-login** - Credentials saved for 30 days
+- **Update Intervals** - Configurable sync frequency
+- **Widget Positioning** - 7 preset positions + custom coordinates
+
+### Technical Features
+- OAuth 2.0 PKCE authentication
+- Transparent, frameless window
+- Always-on-top option
+- Responsive design
+- Hardware acceleration
+- Cross-platform (Windows, macOS, Linux)
 
 ---
 
@@ -62,7 +90,7 @@ The widget is built using Tauri, React, and TypeScript, resulting in a lightweig
 ### Prerequisites
 
 - **Node.js** (v18 or later)
-- **Rust** and the Cargo package manager
+- **Rust** and Cargo
 - A **Spotify Account** (Free or Premium)
 
 ### 1. Installation
@@ -72,7 +100,7 @@ The widget is built using Tauri, React, and TypeScript, resulting in a lightweig
 git clone https://github.com/your-username/spotify-widget.git
 cd spotify-widget
 
-# Install frontend dependencies
+# Install dependencies
 npm install
 ```
 
@@ -80,23 +108,21 @@ npm install
 
 This application requires a Spotify Developer App to communicate with the API.
 
-1.  Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/) and log in.
-2.  Click `Create App`.
-3.  Give your app a name and description (e.g., "Tauri Widget").
-4.  Once created, find your **Client ID** and copy it.
-5.  Go to `App settings` for the app you just created.
-6.  In the `Redirect URIs` field, add the following URL exactly: `http://127.0.0.1:14700/callback`
-7.  Save the settings.
+1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/) and log in
+2. Click `Create App`
+3. Give your app a name and description (e.g., "Desktop Widget")
+4. Once created, find your **Client ID** and copy it
+5. Go to `App settings` for the app you just created
+6. In the `Redirect URIs` field, add exactly: `http://127.0.0.1:14700/callback`
+7. Save the settings
 
-Now, open the project in your code editor and update the backend with your Client ID.
+Now, update the backend with your Client ID:
 
 - **File**: `spotify-widget/src-tauri/src/main.rs`
-- **Line to edit**: Find the `CLIENT_ID` constant and replace the placeholder value with your own Client ID.
+- **Line to edit**: Find the `CLIENT_ID` constant and replace with your Client ID
 
 ```rust
-// spotify-widget/src-tauri/src/main.rs
-
-const CLIENT_ID: &str = "YOUR_CLIENT_ID_HERE"; 
+const CLIENT_ID: &str = "YOUR_CLIENT_ID_HERE";
 ```
 
 ### 3. Launch
@@ -106,7 +132,7 @@ const CLIENT_ID: &str = "YOUR_CLIENT_ID_HERE";
 npm run tauri dev
 ```
 
-The app will start, and you will be prompted to log in with Spotify.
+The widget will start, and you'll be prompted to log in with Spotify.
 
 ---
 
@@ -118,65 +144,59 @@ The app will start, and you will be prompted to log in with Spotify.
 spotify-widget/
 ├── src/                      # Frontend source code (React, TypeScript)
 │   ├── api/
-│   │   └── spotify.ts        # Frontend API client for Spotify
-│   ├── components/           # React components (Player, ProgressBar, etc.)
-│   ├── hooks/                # Custom React hooks (useSpotify, useTheme)
-│   ├── App.tsx               # Main application component with routing
+│   │   └── spotify.ts        # Spotify API client with extended functionality
+│   ├── components/           # React components
+│   │   ├── Player.tsx        # Main player component with tabs
+│   │   ├── ProgressBar.tsx   # Smooth progress bar with seeking
+│   │   └── Settings.tsx      # Settings page
+│   ├── hooks/                # Custom React hooks
+│   │   ├── useSpotify.ts     # Spotify state management
+│   │   └── useTheme.ts       # Theme management
+│   ├── App.tsx               # Main application component
 │   └── main.tsx              # Frontend entry point
 ├── src-tauri/                # Backend source code (Rust)
 │   ├── src/
-│   │   └── main.rs           # Main Rust application logic
-│   └── tauri.conf.json       # Tauri configuration file
+│   │   └── main.rs           # Rust backend logic
+│   └── tauri.conf.json       # Tauri configuration
 ├── index.html                # HTML entry point
-├── package.json              # Frontend dependencies and scripts
+├── package.json              # Frontend dependencies
 └── README.md                 # This file
 ```
 
 ### Authentication Flow
 
-The application uses the **OAuth 2.0 Authorization Code Flow with PKCE**, which is a secure method for native applications to obtain access tokens.
+The application uses the OAuth 2.0 Authorization Code Flow with PKCE for secure authentication:
 
-The entire authentication process is orchestrated between the Rust backend and the frontend, ensuring that no sensitive secrets are stored on the client-side.
+1. User clicks login, backend generates PKCE challenge
+2. Browser opens Spotify authorization page
+3. User grants permissions, Spotify redirects to local callback
+4. Backend exchanges authorization code for tokens
+5. Tokens are stored locally for 30 days
+6. Frontend receives authentication confirmation and reloads
 
-```mermaid
-sequenceDiagram
-    participant Frontend (React)
-    participant Backend (Rust/Tauri)
-    participant Spotify API
-    participant Browser
+### New Features Implementation
 
-    Frontend->>Backend: User clicks "Login", invokes `login` command
-    Backend->>Spotify API: Generates PKCE challenge
-    Backend->>Browser: Opens Spotify authorization URL
-    Browser->>Spotify API: User logs in and grants permissions
-    Spotify API-->>Browser: Redirects to `http://127.0.0.1:14700/callback` with auth code
-    
-    participant Axum Server (in Backend)
-    Browser->>Axum Server (in Backend): Hits the callback URL
-    Axum Server (in Backend)->>Spotify API: Exchanges auth code and PKCE verifier for tokens
-    Spotify API-->>Axum Server (in Backend): Returns access and refresh tokens
-    Axum Server (in Backend)->>Frontend: Emits `spotify-auth-token` event with tokens
-    Frontend->>Frontend: Stores tokens in localStorage and reloads
-```
+- **Tab System**: The player now features a tab navigation system for different views
+- **Recently Played**: Fetches and displays the last 20 played tracks
+- **Playlist Integration**: Lists user playlists and allows direct playback
+- **Search**: Real-time search integration with the Spotify API
+- **Device Management**: Shows available devices and allows transfer of playback
 
 ---
 
 ## Performance
 
-### State Synchronization Delay
+### State Management
 
-To keep the player state synchronized with Spotify, the application polls the Spotify API.
+- **Real-time Updates**: The widget polls Spotify every 1 second when visible (3 seconds when hidden)
+- **Optimistic Updates**: UI updates immediately on user actions for responsive feel
+- **Smart Caching**: Recently played and playlists are cached and refreshed periodically
 
--   **Polling Interval**: The `useSpotify` hook fetches the current playback state every **3 seconds**.
--   **Real-time Feedback**: Actions performed within the widget (e.g., play, pause, seek) trigger an immediate state refetch to provide instant UI feedback, followed by the resumption of the regular polling cycle.
+### Resource Efficiency
 
-This polling strategy balances near real-time updates with efficient use of network resources and adherence to Spotify's API rate limits.
-
-### UI Responsiveness
-
--   **Tauri Framework**: By using the system's native webview and a Rust backend, the application has a significantly lower memory footprint and faster startup time than Electron-based alternatives.
--   **Optimized Rendering**: The UI is built with React and styled with Tailwind CSS, ensuring efficient rendering and a consistently smooth experience, even during animations and layout changes.
--   **Minimal Re-renders**: Custom hooks are used to manage state, ensuring that only the necessary components re-render when the player state changes.
+- **Tauri Framework**: Native webview with Rust backend for minimal resource usage
+- **Lazy Loading**: Components and API calls are loaded on demand
+- **Efficient Rendering**: React with optimized re-renders and memoization
 
 ---
 
@@ -184,21 +204,28 @@ This polling strategy balances near real-time updates with efficient use of netw
 
 ### Common Issues
 
--   **Application compiles but the window is blank or shows an error.**
-    -   Ensure you have run `npm install`.
-    -   Verify that the `npm run tauri dev` command completes without errors in the terminal.
+- **Widget doesn't resize properly**
+  - Ensure you're using the latest version
+  - Try restarting the application
+  - Check if your OS scaling settings are affecting the window
 
--   **Login with Spotify button does not work.**
-    -   Make sure you have correctly set your `CLIENT_ID` in `src-tauri/src/main.rs`.
-    -   Verify that the `Redirect URI` in your Spotify Developer Dashboard is set *exactly* to `http://127.0.0.1:14700/callback`. Any deviation, including a trailing slash, will cause it to fail.
+- **Can't play from playlists or recently played**
+  - Ensure you have an active Spotify session on one of your devices
+  - Check that your Spotify account has the necessary permissions
+  - Try refreshing the authentication by logging out and back in
 
--   **Stuck on "Loading..." or "Nothing is playing" after login.**
-    -   Make sure you have Spotify open and are actively playing a track on a device. The widget can only control and display an active session.
-    -   Check your internet connection.
+- **Search not working**
+  - Verify your internet connection
+  - Check if you're being rate limited (wait a few seconds and try again)
+  - Ensure your access token is valid
+
+- **Login expires too quickly**
+  - The app now saves credentials for 30 days
+  - If issues persist, clear browser cache and re-authenticate
 
 ### Debugging
 
-You can view the webview's developer console by right-clicking inside the widget and selecting `Inspect`. This is useful for diagnosing frontend errors or inspecting network requests.
+Access the developer console by right-clicking in the widget and selecting `Inspect`. Check the console for error messages or network issues.
 
 ---
 

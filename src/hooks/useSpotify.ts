@@ -5,12 +5,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '../api/spotify';
+import type { SpotifyPlaylistItem, SpotifyRecentlyPlayedItem } from '../api/spotify';
 
 interface SpotifyState {
   device: {
     id: string;
     is_active: boolean;
     name: string;
+    volume_percent?: number;
   } | null;
   shuffle_state: boolean;
   repeat_state: string;
@@ -26,6 +28,7 @@ interface SpotifyState {
       images: { url: string; width: number; height: number }[];
     };
     duration_ms: number;
+    uri: string;
   } | null;
   currently_playing_type: string;
   is_playing: boolean;
@@ -42,6 +45,15 @@ export function useSpotify() {
   const [realTimeProgress, setRealTimeProgress] = useState<number>(0);
   const [lastApiUpdate, setLastApiUpdate] = useState<number>(0);
   const [isUserSeeking, setIsUserSeeking] = useState(false);
+  
+  // New state for enhanced features
+  const [recentlyPlayed, setRecentlyPlayed] = useState<SpotifyRecentlyPlayedItem[]>([]);
+  const [playlists, setPlaylists] = useState<SpotifyPlaylistItem[]>([]);
+  const [devices, setDevices] = useState<any[]>([]);
+  const [volume, setVolume] = useState<number>(50);
+  const [updateInterval, setUpdateInterval] = useState<number>(1000);
+  const [queue, setQueue] = useState<any>({ queue: [] });
+  const [savedTracks, setSavedTracks] = useState<Record<string, boolean>>({});
   
   // Internal state
   const [isVisible, setIsVisible] = useState(true);
@@ -107,6 +119,13 @@ export function useSpotify() {
         setPlayerState(state);
         setLastApiUpdate(Date.now());
         setRealTimeProgress(state.progress_ms || 0);
+        setVolume(state.device?.volume_percent || 50);
+        
+        // Fetch queue periodically
+        if (state.is_playing) {
+          const queueData = await api.getQueue();
+          setQueue(queueData);
+        }
       }
       setError(null);
     } catch (err) {
@@ -120,23 +139,69 @@ export function useSpotify() {
     }
   }, []);
 
+  // Fetch recently played tracks
+  const fetchRecentlyPlayed = useCallback(async () => {
+    if (!api.isAuthenticated()) return;
+    
+    try {
+      const tracks = await api.getRecentlyPlayed(20);
+      setRecentlyPlayed(tracks);
+    } catch (err) {
+      console.error('Failed to fetch recently played:', err);
+    }
+  }, []);
+
+  // Fetch user playlists
+  const fetchPlaylists = useCallback(async () => {
+    if (!api.isAuthenticated()) return;
+    
+    try {
+      const userPlaylists = await api.getUserPlaylists(50);
+      setPlaylists(userPlaylists);
+    } catch (err) {
+      console.error('Failed to fetch playlists:', err);
+    }
+  }, []);
+
+  // Fetch available devices
+  const fetchDevices = useCallback(async () => {
+    if (!api.isAuthenticated()) return;
+    
+    try {
+      const availableDevices = await api.getDevices();
+      setDevices(availableDevices);
+    } catch (err) {
+      console.error('Failed to fetch devices:', err);
+    }
+  }, []);
+
   // High-frequency polling for real-time updates
   useEffect(() => {
     if (!isAuthenticated) return;
 
     // Initial fetch
     fetchPlaybackState();
+    fetchRecentlyPlayed();
+    fetchPlaylists();
+    fetchDevices();
 
     // Much faster polling for real-time feel
     const pollInterval = isVisible ? 1000 : 3000; // 1s when visible, 3s when hidden
     intervalRef.current = setInterval(fetchPlaybackState, pollInterval);
+    
+    // Less frequent updates for other data
+    const dataInterval = setInterval(() => {
+      fetchRecentlyPlayed();
+      fetchDevices();
+    }, 30000); // 30 seconds
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      clearInterval(dataInterval);
     };
-  }, [isAuthenticated, isVisible, fetchPlaybackState]);
+  }, [isAuthenticated, isVisible, fetchPlaybackState, fetchRecentlyPlayed, fetchPlaylists, fetchDevices]);
 
   // Visibility change handler
   useEffect(() => {
@@ -163,6 +228,9 @@ export function useSpotify() {
         return;
       }
 
+      // Ctrl/Cmd shortcuts
+      const ctrlOrCmd = event.ctrlKey || event.metaKey;
+
       switch (event.key) {
         case ' ':
         case 'Spacebar':
@@ -174,16 +242,90 @@ export function useSpotify() {
           }
           break;
         case 'ArrowRight':
-          if (event.ctrlKey || event.metaKey) {
+          if (ctrlOrCmd) {
             event.preventDefault();
             controls.next();
           }
           break;
         case 'ArrowLeft':
-          if (event.ctrlKey || event.metaKey) {
+          if (ctrlOrCmd) {
             event.preventDefault();
             controls.previous();
           }
+          break;
+        case 'ArrowUp':
+          if (ctrlOrCmd) {
+            event.preventDefault();
+            const newVolume = Math.min(100, volume + 10);
+            controls.setVolume(newVolume);
+          }
+          break;
+        case 'ArrowDown':
+          if (ctrlOrCmd) {
+            event.preventDefault();
+            const newVolume = Math.max(0, volume - 10);
+            controls.setVolume(newVolume);
+          }
+          break;
+        case 's':
+        case 'S':
+          if (ctrlOrCmd) {
+            event.preventDefault();
+            controls.setShuffle(!playerState?.shuffle_state);
+          }
+          break;
+        case 'r':
+        case 'R':
+          if (ctrlOrCmd) {
+            event.preventDefault();
+            const states: Array<'track' | 'context' | 'off'> = ['off', 'context', 'track'];
+            const currentIndex = states.indexOf(playerState?.repeat_state as any) || 0;
+            const nextState = states[(currentIndex + 1) % 3];
+            controls.setRepeat(nextState);
+          }
+          break;
+        case 'm':
+        case 'M':
+          if (ctrlOrCmd) {
+            event.preventDefault();
+            // Dispatch custom event for mini mode toggle
+            window.dispatchEvent(new CustomEvent('toggle-mini-mode'));
+          }
+          break;
+        case 'h':
+        case 'H':
+          if (ctrlOrCmd) {
+            event.preventDefault();
+            // Dispatch custom event for tabs toggle
+            window.dispatchEvent(new CustomEvent('toggle-tabs'));
+          }
+          break;
+        case 'l':
+        case 'L':
+          if (ctrlOrCmd && playerState?.item) {
+            event.preventDefault();
+            // TODO: Implement like/save track
+            console.log('Like track:', playerState.item.name);
+          }
+          break;
+        case 'q':
+        case 'Q':
+          if (ctrlOrCmd && playerState?.item) {
+            event.preventDefault();
+            controls.addToQueue(`spotify:track:${playerState.item.id}`);
+          }
+          break;
+        case '/':
+          if (ctrlOrCmd) {
+            event.preventDefault();
+            // Dispatch custom event for search focus
+            window.dispatchEvent(new CustomEvent('focus-search'));
+          }
+          break;
+        case '?':
+          event.preventDefault();
+          // Dispatch custom event to show shortcuts
+          window.dispatchEvent(new CustomEvent('show-shortcuts'));
           break;
         // Media keys
         case 'MediaPlayPause':
@@ -207,11 +349,11 @@ export function useSpotify() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [playerState]);
+  }, [playerState, volume]);
 
   // Control functions with immediate feedback
   const controls = {
-    play: async (contextUri?: string) => {
+    play: async (contextUri?: string, uris?: string[]) => {
       try {
         console.log('▶️ Playing...');
         
@@ -221,7 +363,7 @@ export function useSpotify() {
           setLastApiUpdate(Date.now());
         }
         
-        await api.play(contextUri);
+        await api.play(contextUri, uris);
         
         // Quick refresh
         setTimeout(fetchPlaybackState, 200);
@@ -316,12 +458,120 @@ export function useSpotify() {
     setVolume: async (volumePercent: number) => {
       try {
         console.log(`🔊 Setting volume to ${volumePercent}%...`);
+        setVolume(volumePercent); // Optimistic update
         await api.setVolume(volumePercent);
       } catch (err) {
         console.error('❌ Volume change failed:', err);
         setError('Failed to change volume');
       }
     },
+
+    setShuffle: async (state: boolean) => {
+      try {
+        console.log(`🔀 Setting shuffle to ${state}...`);
+        // Optimistic update
+        if (playerState) {
+          setPlayerState({ ...playerState, shuffle_state: state });
+        }
+        await api.setShuffle(state);
+        setTimeout(fetchPlaybackState, 200);
+      } catch (err) {
+        console.error('❌ Shuffle change failed:', err);
+        setError('Failed to change shuffle state');
+        setTimeout(fetchPlaybackState, 100);
+      }
+    },
+    
+    setRepeat: async (state: 'track' | 'context' | 'off') => {
+      try {
+        console.log(`🔁 Setting repeat to ${state}...`);
+        // Optimistic update
+        if (playerState) {
+          setPlayerState({ ...playerState, repeat_state: state });
+        }
+        await api.setRepeat(state);
+        setTimeout(fetchPlaybackState, 200);
+      } catch (err) {
+        console.error('❌ Repeat change failed:', err);
+        setError('Failed to change repeat state');
+        setTimeout(fetchPlaybackState, 100);
+      }
+    },
+    
+    playTrack: async (uri: string) => {
+      try {
+        console.log('▶️ Playing track:', uri);
+        await api.playTrack(uri);
+        setTimeout(fetchPlaybackState, 300);
+      } catch (err) {
+        console.error('❌ Play track failed:', err);
+        setError('Failed to play track');
+      }
+    },
+    
+    playPlaylist: async (uri: string, shuffle: boolean = false) => {
+      try {
+        console.log('▶️ Playing playlist:', uri);
+        if (shuffle) {
+          await api.setShuffle(true);
+        }
+        await api.playContext(uri);
+        setTimeout(fetchPlaybackState, 300);
+      } catch (err) {
+        console.error('❌ Play playlist failed:', err);
+        setError('Failed to play playlist');
+      }
+    },
+    
+    addToQueue: async (uri: string) => {
+      try {
+        console.log('➕ Adding to queue:', uri);
+        await api.addToQueue(uri);
+        setError(null);
+      } catch (err) {
+        console.error('❌ Add to queue failed:', err);
+        setError('Failed to add to queue');
+      }
+    },
+    
+    transferPlayback: async (deviceId: string) => {
+      try {
+        console.log('📱 Transferring playback to device:', deviceId);
+        await api.transferPlayback(deviceId);
+        setTimeout(() => {
+          fetchPlaybackState();
+          fetchDevices();
+        }, 300);
+      } catch (err) {
+        console.error('❌ Transfer playback failed:', err);
+        setError('Failed to transfer playback');
+      }
+    },
+
+    saveTrack: async (trackId: string, save: boolean = true) => {
+      try {
+        await api.saveTrack(trackId, save);
+        setSavedTracks(prev => ({
+          ...prev,
+          [trackId]: save
+        }));
+        const notification = document.createElement('div');
+        notification.textContent = save ? 'Added to Liked Songs' : 'Removed from Liked Songs';
+        notification.style.position = 'fixed';
+        notification.style.bottom = '20px';
+        notification.style.right = '20px';
+        notification.style.padding = '12px 20px';
+        notification.style.borderRadius = '8px';
+        notification.style.backgroundColor = '#1db954';
+        notification.style.color = '#ffffff';
+        notification.style.zIndex = '9999';
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+      } catch (error) {
+        console.error('❌ Save track failed:', error);
+        setError('Failed to save track');
+      }
+    }
   };
 
   const login = () => {
@@ -348,6 +598,10 @@ export function useSpotify() {
     playerState,
     error,
     isVisible,
+    recentlyPlayed,
+    playlists,
+    devices,
+    volume,
     
     // Real-time computed values
     currentProgress: realTimeProgress,
@@ -359,5 +613,10 @@ export function useSpotify() {
     
     // Utilities
     clearError: () => setError(null),
+    refreshRecentlyPlayed: fetchRecentlyPlayed,
+    refreshPlaylists: fetchPlaylists,
+    refreshDevices: fetchDevices,
+    queue,
+    savedTracks
   };
 } 

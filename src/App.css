@@ -7,6 +7,117 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Ensure the app fills the entire window */
+.w-full {
+  width: 100% !important;
+}
+
+.h-full {
+  height: 100% !important;
+}
+
+/* Custom scrollbar for tab content */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.5);
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Disable text selection on draggable areas */
+[data-tauri-drag-region] {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: move;
+}
+
+/* Allow interaction with controls */
+button, input, a, [role="button"] {
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+}
+
+/* Input styles */
+input[type="text"] {
+  outline: none;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+input[type="text"]:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+/* Range input styles */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-top: -4px;
+}
+
+/* Prevent layout shift on hover */
+.group:hover {
+  z-index: 10;
+}
+
 /* ===== GLOBAL RESET & BASE STYLES ===== */
 *,
 *::before,
@@ -52,25 +163,6 @@ body,
 [data-tauri-drag-region] [data-no-drag] {
   -webkit-app-region: no-drag;
   cursor: pointer;
-}
-
-/* ===== CUSTOM SCROLLBARS ===== */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 
 /* ===== FOCUS STYLES ===== */
@@ -208,4 +300,26 @@ button:focus-visible,
   .backdrop-blur-xl {
     background-color: rgba(0, 0, 0, 0.8);
   }
+}
+
+/* Notification animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Visualizer blur effect */
+.visualizer-blur {
+  filter: blur(40px);
+  opacity: 0.5;
 }

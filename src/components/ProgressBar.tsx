@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useTheme } from '../hooks/useTheme';
 
 interface ProgressBarProps {
   currentProgress: number;
@@ -31,17 +32,18 @@ export default function ProgressBar({
   const [dragProgress, setDragProgress] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const { currentTheme } = useTheme();
 
   // Use drag progress when dragging, otherwise use real-time progress
   const displayProgress = isDragging ? dragProgress : currentProgress;
   const progressPercent = duration > 0 ? (displayProgress / duration) * 100 : 0;
 
   // Calculate position from mouse/touch event
-  const getProgressFromEvent = useCallback((event: MouseEvent | TouchEvent) => {
+  const getProgressFromEvent = useCallback((event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) => {
     if (!progressBarRef.current) return 0;
 
     const rect = progressBarRef.current.getBoundingClientRect();
-    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+    const clientX = 'touches' in event ? (event as TouchEvent).touches[0].clientX : (event as MouseEvent).clientX;
     const x = clientX - rect.left;
     const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
     
@@ -51,9 +53,10 @@ export default function ProgressBar({
   // Mouse handlers
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
+    event.stopPropagation();
     setIsDragging(true);
     
-    const newProgress = getProgressFromEvent(event.nativeEvent);
+    const newProgress = getProgressFromEvent(event);
     setDragProgress(newProgress);
   }, [getProgressFromEvent]);
 
@@ -74,65 +77,35 @@ export default function ProgressBar({
     onSeek(Math.round(finalProgress));
   }, [isDragging, getProgressFromEvent, onSeek]);
 
-  // Touch handlers for mobile
-  const handleTouchStart = useCallback((event: React.TouchEvent) => {
-    event.preventDefault();
-    setIsDragging(true);
-    
-    const newProgress = getProgressFromEvent(event.nativeEvent);
-    setDragProgress(newProgress);
-  }, [getProgressFromEvent]);
-
-  const handleTouchMove = useCallback((event: TouchEvent) => {
-    if (!isDragging) return;
-    event.preventDefault();
-    
-    const newProgress = getProgressFromEvent(event);
-    setDragProgress(newProgress);
-  }, [isDragging, getProgressFromEvent]);
-
-  const handleTouchEnd = useCallback((event: TouchEvent) => {
-    if (!isDragging) return;
-    event.preventDefault();
-    
-    const finalProgress = getProgressFromEvent(event);
-    setIsDragging(false);
-    
-    // Seek to the final position
-    onSeek(Math.round(finalProgress));
-  }, [isDragging, getProgressFromEvent, onSeek]);
-
   // Click to seek (when not dragging)
   const handleClick = useCallback((event: React.MouseEvent) => {
     if (isDragging) return;
+    event.preventDefault();
+    event.stopPropagation();
     
-    const newProgress = getProgressFromEvent(event.nativeEvent);
+    const newProgress = getProgressFromEvent(event);
     onSeek(Math.round(newProgress));
   }, [isDragging, getProgressFromEvent, onSeek]);
 
-  // Global mouse/touch event listeners
+  // Global mouse event listeners
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd, { passive: false });
       
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`}>
       {/* Current Time */}
       <div 
-        className="text-xs font-mono min-w-[40px] text-right"
-        style={{ color: 'var(--color-text-muted)' }}
+        className="text-xs font-mono min-w-[35px] text-right"
+        style={{ color: currentTheme.textMuted }}
       >
         {formatTime(displayProgress)}
       </div>
@@ -142,74 +115,52 @@ export default function ProgressBar({
         ref={progressBarRef}
         className={`
           flex-1 cursor-pointer relative transition-all duration-150 ease-out
-          ${isHovering || isDragging ? 'h-3' : 'h-2'}
+          ${isHovering || isDragging ? 'h-2' : 'h-1.5'}
         `}
         onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
         onClick={handleClick}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         style={{
-          backgroundColor: 'var(--color-background-secondary)',
+          backgroundColor: currentTheme.backgroundSecondary,
           borderRadius: '9999px',
-        }}
+          // Make sure it's not being dragged by the window
+          WebkitAppRegion: 'no-drag',
+        } as React.CSSProperties}
       >
-        {/* Background Track */}
-        <div 
-          className="absolute inset-0 rounded-full" 
-          style={{ 
-            backgroundColor: isDragging ? 'var(--color-border)' : 'var(--color-background-secondary)',
-            opacity: 0.6,
-          }}
-        />
-        
         {/* Progress Fill */}
         <div
-          className="absolute left-0 top-0 h-full rounded-full transition-all duration-150"
+          className="absolute left-0 top-0 h-full rounded-full transition-all duration-150 pointer-events-none"
           style={{ 
             width: `${Math.max(0, Math.min(100, progressPercent))}%`,
             background: isDragging 
-              ? `linear-gradient(90deg, var(--color-accent) 0%, var(--color-secondary) 100%)`
+              ? `linear-gradient(90deg, ${currentTheme.accent} 0%, ${currentTheme.secondary} 100%)`
               : isPlaying 
-                ? `linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%)`
-                : 'var(--color-text-muted)',
-            boxShadow: isPlaying && !isDragging 
-              ? `0 0 10px var(--color-primary)40` 
-              : 'none',
+                ? `linear-gradient(90deg, ${currentTheme.primary} 0%, ${currentTheme.secondary} 100%)`
+                : currentTheme.textMuted,
           }}
         />
         
         {/* Drag Handle */}
         <div
           className={`
-            absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-lg
+            absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-lg pointer-events-none
             transition-all duration-150 ease-out
-            ${isHovering || isDragging ? 'opacity-100 scale-110' : 'opacity-0 scale-75'}
+            ${isHovering || isDragging ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}
           `}
           style={{ 
-            left: `calc(${Math.max(0, Math.min(100, progressPercent))}% - 6px)`,
+            left: `${Math.max(0, Math.min(100, progressPercent))}%`,
+            transform: 'translate(-50%, -50%)',
             backgroundColor: '#ffffff',
-            boxShadow: `0 2px 8px var(--color-shadow), 0 0 0 2px var(--color-primary)`,
+            boxShadow: `0 2px 8px ${currentTheme.shadow}, 0 0 0 2px ${currentTheme.primary}`,
           }}
         />
-        
-        {/* Active glow effect when playing */}
-        {isPlaying && !isDragging && (
-          <div
-            className="absolute left-0 top-0 h-full rounded-full opacity-30 animate-pulse"
-            style={{ 
-              width: `${Math.max(0, Math.min(100, progressPercent))}%`,
-              background: `linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%)`,
-              filter: 'blur(1px)',
-            }}
-          />
-        )}
       </div>
       
       {/* Duration */}
       <div 
-        className="text-xs font-mono min-w-[40px]"
-        style={{ color: 'var(--color-text-muted)' }}
+        className="text-xs font-mono min-w-[35px]"
+        style={{ color: currentTheme.textMuted }}
       >
         {formatTime(duration)}
       </div>
