@@ -6,10 +6,12 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Player from './components/Player';
 import Settings from './components/Settings';
+import { NotificationProvider } from './contexts/NotificationContext';
 import './App.css';
 
 export default function App() {
   return (
+    <NotificationProvider>
     <div className="w-full h-full">
       <Router>
         <Routes>
@@ -19,5 +21,6 @@ export default function App() {
         </Routes>
       </Router>
     </div>
+    </NotificationProvider>
   );
 }

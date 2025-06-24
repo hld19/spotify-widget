@@ -65,39 +65,44 @@ export default function Settings() {
 
   const SettingRow = ({ icon: Icon, title, description, children, onClick }: any) => (
     <div
-      className="flex items-center justify-between p-3 rounded-lg border transition-all hover:border-opacity-60"
+      className="flex items-center justify-between p-2 rounded-lg border transition-all hover:border-opacity-60 cursor-pointer"
       style={{
         backgroundColor: currentTheme.backgroundSecondary + '20',
         borderColor: currentTheme.border + '40',
       }}
       onClick={onClick}
     >
-      <div className="flex items-center space-x-3">
-        <Icon className="w-5 h-5 flex-shrink-0" style={{ color: currentTheme.primary }} />
-        <div className="min-w-0">
-          <p className="font-medium text-sm">{title}</p>
+      <div className="flex items-center space-x-2 min-w-0">
+        <Icon className="w-4 h-4 flex-shrink-0" style={{ color: currentTheme.primary }} />
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-xs leading-tight">{title}</p>
           {description && (
-            <p className="text-xs" style={{ color: currentTheme.textMuted }}>
+            <p className="text-[10px] leading-tight opacity-75" style={{ color: currentTheme.textMuted }}>
               {description}
             </p>
           )}
         </div>
       </div>
+      <div className="flex-shrink-0">
       {children}
+      </div>
     </div>
   );
 
   const Toggle = ({ active, onClick }: { active: boolean; onClick: () => void }) => (
     <button
-      onClick={onClick}
-      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors"
       style={{
         backgroundColor: active ? currentTheme.primary : currentTheme.backgroundSecondary,
       }}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          active ? 'translate-x-5' : 'translate-x-1'
+        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+          active ? 'translate-x-4' : 'translate-x-0.5'
         }`}
       />
     </button>
@@ -110,17 +115,19 @@ export default function Settings() {
       style={{
         background: `linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.backgroundSecondary} 100%)`,
         color: currentTheme.text,
+        minWidth: '320px', // Minimum width for readability
+        maxWidth: '100%'   // Allow horizontal shrinking
       }}
     >
-      {/* Header */}
+      {/* Header - More compact */}
       <div 
-        className="flex items-center justify-between p-3 border-b"
+        className="flex items-center justify-between px-2 py-2 border-b"
         style={{ borderColor: currentTheme.border }}
       >
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           <Link
             to="/"
-            className="p-1.5 rounded-lg transition-colors hover:bg-opacity-10"
+            className="p-1 rounded-lg transition-colors hover:bg-opacity-10"
             style={{ 
               color: currentTheme.textSecondary,
               backgroundColor: 'transparent'
@@ -132,22 +139,22 @@ export default function Settings() {
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <ArrowLeftIcon className="w-3 h-3" />
           </Link>
-          <h1 className="text-base font-semibold" style={{ color: currentTheme.text }}>
+          <h1 className="text-sm font-semibold" style={{ color: currentTheme.text }}>
             Settings
           </h1>
         </div>
         
-        <div className="flex items-center space-x-1 text-xs" style={{ color: currentTheme.textMuted }}>
-          <SparklesIcon className="w-3 h-3" />
-          <span>v2.1.0</span>
+        <div className="flex items-center space-x-1 text-[10px]" style={{ color: currentTheme.textMuted }}>
+          <SparklesIcon className="w-2 h-2" />
+          <span>v2.1</span>
         </div>
       </div>
 
-      {/* Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4">
+      {/* Content - Fixed scrolling */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="p-2 space-y-3" style={{ minHeight: 'fit-content' }}>
           
           {/* Appearance Section */}
           <section className="space-y-2">

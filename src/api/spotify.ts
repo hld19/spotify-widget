@@ -158,8 +158,16 @@ class SpotifyAPI {
 
   isAuthenticated = (): boolean => {
     const hasToken = !!this.accessToken;
-    console.log('🔍 Checking authentication status:', hasToken);
-    return hasToken;
+    const tokenExpiry = localStorage.getItem('spotify_token_expires');
+    const isTokenValid = !tokenExpiry || Date.now() < parseInt(tokenExpiry);
+    
+    console.log('🔍 Checking authentication status:', {
+      hasToken,
+      isTokenValid,
+      expiresAt: tokenExpiry ? new Date(parseInt(tokenExpiry)).toISOString() : 'N/A'
+    });
+    
+    return hasToken && isTokenValid;
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

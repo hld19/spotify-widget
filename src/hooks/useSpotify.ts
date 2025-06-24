@@ -130,7 +130,7 @@ export function useSpotify() {
       setError(null);
     } catch (err) {
       console.error('❌ Failed to fetch playback state:', err);
-      setError('Failed to fetch playback state');
+      // Don't show error notification for this common error
       
       // If auth error, mark as unauthenticated
       if (err instanceof Error && err.message.includes('401')) {
@@ -369,7 +369,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Play failed:', err);
-        setError('Failed to play');
+        // Don't show error notification
         // Revert optimistic update
         setTimeout(fetchPlaybackState, 100);
       }
@@ -390,7 +390,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Pause failed:', err);
-        setError('Failed to pause');
+        // Don't show error notification
         // Revert optimistic update
         setTimeout(fetchPlaybackState, 100);
       }
@@ -404,7 +404,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Next track failed:', err);
-        setError('Failed to skip to next track');
+        // Don't show error notification
       }
     },
 
@@ -416,7 +416,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Previous track failed:', err);
-        setError('Failed to skip to previous track');
+        // Don't show error notification
       }
     },
 
@@ -448,7 +448,7 @@ export function useSpotify() {
         }, 50);
       } catch (err) {
         console.error('❌ Seek failed:', err);
-        setError('Failed to seek');
+        // Don't show error notification
         setIsUserSeeking(false);
         // Revert optimistic update on error
         setTimeout(fetchPlaybackState, 100);
@@ -462,7 +462,7 @@ export function useSpotify() {
         await api.setVolume(volumePercent);
       } catch (err) {
         console.error('❌ Volume change failed:', err);
-        setError('Failed to change volume');
+        // Don't show error notification
       }
     },
 
@@ -477,7 +477,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Shuffle change failed:', err);
-        setError('Failed to change shuffle state');
+        // Don't show error notification
         setTimeout(fetchPlaybackState, 100);
       }
     },
@@ -493,7 +493,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Repeat change failed:', err);
-        setError('Failed to change repeat state');
+        // Don't show error notification
         setTimeout(fetchPlaybackState, 100);
       }
     },
@@ -505,7 +505,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Play track failed:', err);
-        setError('Failed to play track');
+        // Don't show error notification
       }
     },
     
@@ -519,7 +519,7 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Play playlist failed:', err);
-        setError('Failed to play playlist');
+        // Don't show error notification
       }
     },
     
@@ -527,10 +527,10 @@ export function useSpotify() {
       try {
         console.log('➕ Adding to queue:', uri);
         await api.addToQueue(uri);
-        setError(null);
+        // Success - no notification needed
       } catch (err) {
         console.error('❌ Add to queue failed:', err);
-        setError('Failed to add to queue');
+        // Don't show error notification
       }
     },
     
@@ -544,7 +544,7 @@ export function useSpotify() {
         }, 300);
       } catch (err) {
         console.error('❌ Transfer playback failed:', err);
-        setError('Failed to transfer playback');
+        // Don't show error notification
       }
     },
 
@@ -555,21 +555,10 @@ export function useSpotify() {
           ...prev,
           [trackId]: save
         }));
-        const notification = document.createElement('div');
-        notification.textContent = save ? 'Added to Liked Songs' : 'Removed from Liked Songs';
-        notification.style.position = 'fixed';
-        notification.style.bottom = '20px';
-        notification.style.right = '20px';
-        notification.style.padding = '12px 20px';
-        notification.style.borderRadius = '8px';
-        notification.style.backgroundColor = '#1db954';
-        notification.style.color = '#ffffff';
-        notification.style.zIndex = '9999';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
+        // Notification will be handled by the component using useNotifications
       } catch (error) {
         console.error('❌ Save track failed:', error);
-        setError('Failed to save track');
+        // Don't show error notification
       }
     }
   };

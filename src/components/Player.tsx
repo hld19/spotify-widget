@@ -25,7 +25,9 @@ import {
   ChevronDownIcon,
   ViewColumnsIcon,
   ShareIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  XMarkIcon,
+  EyeIcon
 } from '@heroicons/react/24/solid';
 import { SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 import ProgressBar from './ProgressBar';
@@ -34,6 +36,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useTrackHistory } from '../hooks/useTrackHistory';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { useGestures } from '../hooks/useGestures';
+import { useNotifications } from '../contexts/NotificationContext';
 import KeyboardShortcuts from './KeyboardShortcuts';
 import Visualizer from './Visualizer';
 import AudioSettings from './AudioSettings';
@@ -55,6 +58,9 @@ export default function Player() {
   });
   const [miniMode, setMiniMode] = useState(() => {
     return localStorage.getItem('miniMode') === 'true';
+  });
+  const [transparentMode, setTransparentMode] = useState(() => {
+    return localStorage.getItem('transparentMode') === 'true';
   });
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -97,22 +103,12 @@ export default function Player() {
     clearHistory
   } = useTrackHistory();
 
+  const { showNotification } = useNotifications();
+
   const sleepTimer = useSleepTimer({
     onTimerEnd: () => {
       controls.pause();
-      // Show notification
-      const notification = document.createElement('div');
-      notification.textContent = 'Sleep timer ended - playback paused';
-      notification.style.position = 'fixed';
-      notification.style.top = '20px';
-      notification.style.right = '20px';
-      notification.style.padding = '12px 20px';
-      notification.style.borderRadius = '8px';
-      notification.style.backgroundColor = currentTheme.accent;
-      notification.style.color = '#ffffff';
-      notification.style.zIndex = '9999';
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 5000);
+      showNotification('Sleep timer ended - playback paused', 'info', 5000);
     }
   });
 
@@ -147,6 +143,11 @@ export default function Player() {
   useEffect(() => {
     localStorage.setItem('miniMode', miniMode.toString());
   }, [miniMode]);
+
+  // Apply transparent mode
+  useEffect(() => {
+    localStorage.setItem('transparentMode', transparentMode.toString());
+  }, [transparentMode]);
 
   // Listen for custom events
   useEffect(() => {
@@ -246,19 +247,7 @@ export default function Player() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      // Show success notification
-      const notification = document.createElement('div');
-      notification.textContent = 'Track link copied to clipboard!';
-      notification.style.position = 'fixed';
-      notification.style.top = '20px';
-      notification.style.right = '20px';
-      notification.style.padding = '12px 20px';
-      notification.style.borderRadius = '8px';
-      notification.style.backgroundColor = currentTheme.primary;
-      notification.style.color = '#ffffff';
-      notification.style.zIndex = '9999';
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 3000);
+      showNotification('Track link copied to clipboard!', 'success');
     });
   };
 
@@ -434,41 +423,109 @@ export default function Player() {
   const sectionPadding = compactMode ? 'p-2' : 'p-3';
   const tabHeight = compactMode ? 'h-32' : 'h-40';
 
-  // Mini mode view
+  // Transparent mode view - only album cover and controls
+  if (transparentMode && hasPlayback) {
+    return (
+      <div 
+        data-tauri-drag-region
+        className="w-full h-full rounded-2xl overflow-hidden flex flex-col items-center justify-center p-4"
+        style={{
+          background: 'rgba(0, 0, 0, 0.1)',
+          backdropFilter: 'blur(10px)',
+          color: '#ffffff',
+        }}
+      >
+        {/* Large Album Art */}
+        <img
+          src={item.album.images[0]?.url || ''}
+          alt=""
+          className="w-24 h-24 rounded-xl shadow-2xl mb-4"
+          onError={(e) => {
+            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzMzIi8+PC9zdmc>';
+          }}
+        />
+        
+        {/* Transparent Controls */}
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={controls.previous}
+            className="p-2 rounded-full transition-all hover:scale-110 bg-black/20"
+            style={{ color: '#ffffff' }}
+          >
+            <BackwardIcon className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={() => is_playing ? controls.pause() : controls.play()}
+            className="p-3 rounded-full bg-white/20 backdrop-blur-sm transition-all hover:scale-110"
+            style={{ color: '#ffffff' }}
+          >
+            {is_playing ? 
+              <PauseIcon className="w-5 h-5" /> : 
+              <PlayIcon className="w-5 h-5 ml-0.5" />
+            }
+          </button>
+          
+          <button 
+            onClick={controls.next}
+            className="p-2 rounded-full transition-all hover:scale-110 bg-black/20"
+            style={{ color: '#ffffff' }}
+          >
+            <ForwardIcon className="w-4 h-4" />
+          </button>
+          
+          {/* Exit transparent mode */}
+          <button
+            onClick={() => {
+              setTransparentMode(false);
+              localStorage.setItem('transparentMode', 'false');
+            }}
+            className="p-2 rounded-full ml-2 bg-black/20"
+            style={{ color: '#ffffff' }}
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Mini mode view - improved to be slimmer
   if (miniMode && hasPlayback) {
     return (
       <div 
         data-tauri-drag-region
-        className="w-full h-full rounded-2xl overflow-hidden flex items-center p-2"
+        className="w-full h-full rounded-2xl overflow-hidden flex items-center px-2 py-1"
         style={{
           background: `linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.backgroundSecondary} 100%)`,
           color: currentTheme.text,
-          maxHeight: '60px'
+          maxHeight: '48px', // Reduced from 60px
+          minWidth: '280px' // Ensure minimum width for readability
         }}
       >
         {/* Mini Album Art */}
         <img
           src={item.album.images[0]?.url || ''}
           alt=""
-          className="w-8 h-8 rounded"
+          className="w-6 h-6 rounded flex-shrink-0" // Reduced from w-8 h-8
           onError={(e) => {
             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzMzIi8+PC9zdmc+';
           }}
         />
         
-        {/* Track Info */}
-        <div className="flex-1 mx-2 min-w-0">
-          <p className="text-xs font-medium truncate">{item.name}</p>
-          <p className="text-[10px] truncate" style={{ color: currentTheme.textSecondary }}>
+        {/* Track Info - More compact */}
+        <div className="flex-1 mx-2 min-w-0 overflow-hidden">
+          <p className="text-[10px] font-medium truncate leading-tight">{item.name}</p>
+          <p className="text-[9px] truncate leading-tight" style={{ color: currentTheme.textSecondary }}>
             {item.artists.map(a => a.name).join(', ')}
           </p>
         </div>
         
-        {/* Mini Controls */}
-        <div className="flex items-center space-x-1">
+        {/* Compact Controls */}
+        <div className="flex items-center space-x-0.5 flex-shrink-0">
           <button 
             onClick={controls.previous}
-            className="p-1 rounded transition-all hover:scale-110"
+            className="p-0.5 rounded transition-all hover:scale-110"
             style={{ color: currentTheme.textSecondary }}
           >
             <BackwardIcon className="w-3 h-3" />
@@ -476,24 +533,37 @@ export default function Player() {
           
             <button
             onClick={() => is_playing ? controls.pause() : controls.play()}
-            className="p-1 rounded-full"
+            className="p-1 rounded-full mx-1"
             style={{
               background: currentTheme.primary,
               color: '#ffffff',
             }}
           >
             {is_playing ? 
-              <PauseIcon className="w-3 h-3" /> : 
-              <PlayIcon className="w-3 h-3" />
+              <PauseIcon className="w-2.5 h-2.5" /> : 
+              <PlayIcon className="w-2.5 h-2.5" />
             }
             </button>
           
           <button 
             onClick={controls.next}
-            className="p-1 rounded transition-all hover:scale-110"
+            className="p-0.5 rounded transition-all hover:scale-110"
             style={{ color: currentTheme.textSecondary }}
           >
             <ForwardIcon className="w-3 h-3" />
+          </button>
+          
+          {/* Mode toggle */}
+          <button
+            onClick={() => {
+              setTransparentMode(true);
+              localStorage.setItem('transparentMode', 'true');
+            }}
+            className="p-0.5 rounded ml-1"
+            style={{ color: currentTheme.textMuted }}
+            title="Transparent mode"
+          >
+            <EyeIcon className="w-3 h-3" />
           </button>
           
           {/* Exit mini mode */}
@@ -502,7 +572,7 @@ export default function Player() {
               setMiniMode(false);
               localStorage.setItem('miniMode', 'false');
             }}
-            className="p-1 rounded ml-1"
+            className="p-0.5 rounded ml-0.5"
             style={{ color: currentTheme.textMuted }}
           >
             <ChevronUpIcon className="w-3 h-3" />
@@ -755,6 +825,21 @@ export default function Player() {
             </button>
           )}
 
+          {/* Transparent Mode */}
+          {hasPlayback && (
+            <button
+              onClick={() => {
+                setTransparentMode(true);
+                localStorage.setItem('transparentMode', 'true');
+              }}
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: currentTheme.textSecondary }}
+              title="Transparent mode"
+            >
+              <EyeIcon className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Audio Settings */}
           <button
             onClick={() => setShowAudioSettings(true)}
@@ -915,6 +1000,10 @@ export default function Player() {
                         onClick={() => {
                           const isLiked = savedTracks[item.id] || false;
                           controls.saveTrack(item.id, !isLiked);
+                          showNotification(
+                            !isLiked ? 'Added to Liked Songs' : 'Removed from Liked Songs',
+                            'success'
+                          );
                         }}
                         className="p-1 rounded transition-colors"
                         style={{ color: savedTracks[item.id] ? currentTheme.primary : currentTheme.textSecondary }}

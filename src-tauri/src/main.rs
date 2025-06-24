@@ -8,7 +8,7 @@ use axum::{
 };
 use oauth2::{
     basic::BasicClient, reqwest::async_http_client, AuthUrl, AuthorizationCode, ClientId,
-    CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl, RefreshToken, TokenResponse,
+    CsrfToken, PkceCodeChallenge, RedirectUrl, Scope, TokenUrl, RefreshToken,
 };
 use serde::{Deserialize};
 use std::{net::SocketAddr, sync::Arc};

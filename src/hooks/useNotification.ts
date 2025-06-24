@@ -20,6 +20,36 @@ export function useNotification() {
     type: Notification['type'] = 'info', 
     duration: number = 3000
   ) => {
+    // Filter out all API error messages to reduce notification spam
+    const ignoredErrors = [
+      'Failed to fetch playback state',
+      'Failed to play track',
+      'Failed to pause',
+      'Failed to skip',
+      'Failed to change volume',
+      'Failed to seek',
+      'Failed to save track',
+      'Failed to load',
+      'Failed to refresh',
+      'Failed to transfer',
+      'Failed to add to queue',
+      'Failed to change shuffle',
+      'Failed to change repeat',
+      'Rate limited',
+      'No active device',
+      'Login failed',
+      'API error',
+      'Network error',
+      'Connection failed',
+      'Request failed',
+      'Spotify API error'
+    ];
+    
+    if (type === 'error' && ignoredErrors.some(ignored => message.toLowerCase().includes(ignored.toLowerCase()))) {
+      console.warn('🔇 Suppressed error notification:', message);
+      return '';
+    }
+
     const id = `${Date.now()}-${Math.random()}`;
     const notification: Notification = { id, message, type, duration };
     
