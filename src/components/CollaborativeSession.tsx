@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Collaborative Session Component
  * Allows multiple users to control the same playback session
  */
@@ -8,17 +8,13 @@ import { useTheme } from '../hooks/useTheme';
 import { 
   XMarkIcon, 
   UserGroupIcon,
-  LinkIcon,
   QrCodeIcon,
-  UserPlusIcon,
-  HandRaisedIcon,
   ChatBubbleLeftIcon
 } from '@heroicons/react/24/solid';
 
 interface CollaborativeSessionProps {
   isOpen: boolean;
   onClose: () => void;
-  currentTrack?: string;
   isHost: boolean;
 }
 
@@ -49,8 +45,7 @@ interface ChatMessage {
 
 export default function CollaborativeSession({ 
   isOpen, 
-  onClose, 
-  currentTrack = '',
+  onClose,
   isHost 
 }: CollaborativeSessionProps) {
   const { currentTheme } = useTheme();
@@ -64,7 +59,6 @@ export default function CollaborativeSession({
   const [showQR, setShowQR] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Generate session code
   useEffect(() => {
     if (isHost && !sessionCode) {
       const code = generateSessionCode();
@@ -72,7 +66,6 @@ export default function CollaborativeSession({
     }
   }, [isHost, sessionCode]);
 
-  // Auto-scroll chat
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -84,7 +77,6 @@ export default function CollaborativeSession({
   };
 
   const createSession = () => {
-    // Simulate creating a session
     setIsConnected(true);
     setUsers([
       {
@@ -196,10 +188,8 @@ export default function CollaborativeSession({
         </div>
 
         {!isConnected ? (
-          // Connection Screen
           <div className="space-y-6">
             {isHost ? (
-              // Host Options
               <div className="text-center space-y-4">
                 <h3 className="text-xl font-semibold">Create a Session</h3>
                 <p className="text-sm" style={{ color: currentTheme.textSecondary }}>
@@ -217,7 +207,6 @@ export default function CollaborativeSession({
                 </button>
               </div>
             ) : (
-              // Join Options
               <div className="text-center space-y-4">
                 <h3 className="text-xl font-semibold">Join a Session</h3>
                 <p className="text-sm" style={{ color: currentTheme.textSecondary }}>
@@ -250,7 +239,6 @@ export default function CollaborativeSession({
             )}
           </div>
         ) : (
-          // Connected Session View
           <div className="flex-1 grid grid-cols-3 gap-4">
             {/* Users Panel */}
             <div className="space-y-4">

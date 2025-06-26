@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Track History Hook
  * Manages local track history with persistence
  */
@@ -25,7 +25,6 @@ export function useTrackHistory() {
     }
   });
 
-  // Save history to localStorage whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
@@ -36,7 +35,6 @@ export function useTrackHistory() {
 
   const addTrack = useCallback((track: SpotifyTrack) => {
     setHistory(prev => {
-      // Don't add if the same track was just played (within last minute)
       const lastTrack = prev[0];
       if (lastTrack && lastTrack.track.id === track.id) {
         const timeDiff = Date.now() - new Date(lastTrack.playedAt).getTime();
@@ -50,8 +48,6 @@ export function useTrackHistory() {
         playedAt: new Date().toISOString(),
         duration: track.duration_ms,
       };
-
-      // Keep only the most recent MAX_HISTORY_ITEMS
       const newHistory = [newItem, ...prev].slice(0, MAX_HISTORY_ITEMS);
       return newHistory;
     });

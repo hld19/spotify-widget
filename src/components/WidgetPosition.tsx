@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Widget Position Component
  * Allows users to position the widget with presets or custom positions
  */
@@ -6,7 +6,6 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { XMarkIcon } from '@heroicons/react/24/solid';
-import { invoke } from '@tauri-apps/api/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalPosition } from '@tauri-apps/api/window';
 
@@ -44,7 +43,6 @@ export default function WidgetPosition({ isOpen, onClose }: WidgetPositionProps)
   const [windowSize, setWindowSize] = useState({ width: 600, height: 400 });
 
   useEffect(() => {
-    // Load saved position
     const savedPosition = localStorage.getItem('widgetPosition');
     if (savedPosition) {
       const pos = JSON.parse(savedPosition);
@@ -55,7 +53,6 @@ export default function WidgetPosition({ isOpen, onClose }: WidgetPositionProps)
       }
     }
 
-    // Get current window size
     const getWindowSize = async () => {
       try {
         const appWindow = await WebviewWindow.getCurrent();
@@ -119,7 +116,6 @@ export default function WidgetPosition({ isOpen, onClose }: WidgetPositionProps)
     const position = calculatePosition(preset);
     applyPosition(position);
     
-    // Save to localStorage
     localStorage.setItem('widgetPosition', JSON.stringify({ preset }));
   };
 
@@ -127,7 +123,6 @@ export default function WidgetPosition({ isOpen, onClose }: WidgetPositionProps)
     applyPosition(customPosition);
     setSelectedPreset('');
     
-    // Save to localStorage
     localStorage.setItem('widgetPosition', JSON.stringify({ custom: customPosition }));
   };
 

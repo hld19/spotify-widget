@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Gesture Control Hook
  * Handles swipe and touch gestures for mobile/touch devices
  */
@@ -47,12 +47,10 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
       time: Date.now(),
     };
 
-    // Handle pinch zoom start
     if (e.touches.length === 2) {
       initialPinchDistanceRef.current = calculateDistance(e.touches[0], e.touches[1]);
     }
 
-    // Start long press timer
     if (handlers.onLongPress) {
       longPressTimerRef.current = setTimeout(() => {
         handlers.onLongPress?.();
@@ -62,13 +60,11 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
   }, [handlers]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    // Cancel long press on move
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
 
-    // Handle pinch zoom
     if (e.touches.length === 2 && initialPinchDistanceRef.current && handlers.onPinchZoom) {
       const currentDistance = calculateDistance(e.touches[0], e.touches[1]);
       const scale = currentDistance / initialPinchDistanceRef.current;
@@ -77,7 +73,6 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
   }, [handlers]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
-    // Cancel long press
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -97,7 +92,6 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
     const deltaTime = touchEndRef.current.time - touchStartRef.current.time;
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-    // Check for double tap
     if (distance < 10 && deltaTime < 200) {
       const now = Date.now();
       if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
@@ -109,20 +103,17 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
       return;
     }
 
-    // Check for swipe
     if (distance >= MIN_SWIPE_DISTANCE && deltaTime <= MAX_SWIPE_TIME) {
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
       if (absX > absY) {
-        // Horizontal swipe
         if (deltaX > 0) {
           handlers.onSwipeRight?.();
         } else {
           handlers.onSwipeLeft?.();
         }
       } else {
-        // Vertical swipe
         if (deltaY > 0) {
           handlers.onSwipeDown?.();
         } else {
@@ -130,8 +121,6 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
         }
       }
     }
-
-    // Reset
     touchStartRef.current = null;
     touchEndRef.current = null;
     initialPinchDistanceRef.current = null;
@@ -140,8 +129,6 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
   useEffect(() => {
     const element = elementRef.current;
     if (!element) return;
-
-    // Touch events
     element.addEventListener('touchstart', handleTouchStart, { passive: true });
     element.addEventListener('touchmove', handleTouchMove, { passive: true });
     element.addEventListener('touchend', handleTouchEnd, { passive: true });
@@ -150,8 +137,6 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
       element.removeEventListener('touchstart', handleTouchStart);
       element.removeEventListener('touchmove', handleTouchMove);
       element.removeEventListener('touchend', handleTouchEnd);
-      
-      // Cleanup timers
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
       }

@@ -34,6 +34,7 @@ axum = { version = "0.7", features = ["tokio"] }
 oauth2 = "4.3"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
 open = "4.0"
+dirs = "5.0"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

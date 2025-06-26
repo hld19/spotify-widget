@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Podcast Controls Component
  * Enhanced controls for podcast playback
  */
@@ -10,10 +10,7 @@ import {
   PauseIcon,
   ForwardIcon,
   BackwardIcon,
-  SpeakerWaveIcon,
   BookmarkIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   ClockIcon
 } from '@heroicons/react/24/solid';
 
@@ -49,7 +46,6 @@ export default function PodcastControls({
 
   const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
-  // Load saved settings
   useEffect(() => {
     const savedSpeed = localStorage.getItem('podcastPlaybackSpeed');
     if (savedSpeed) {
@@ -70,12 +66,12 @@ export default function PodcastControls({
   };
 
   const skipForward = () => {
-    const newPosition = Math.min(currentProgress + 30000, duration); // Skip 30 seconds
+    const newPosition = Math.min(currentProgress + 30000, duration);  
     onSeek(newPosition);
   };
 
   const skipBackward = () => {
-    const newPosition = Math.max(currentProgress - 15000, 0); // Skip back 15 seconds
+    const newPosition = Math.max(currentProgress - 15000, 0); 
     onSeek(newPosition);
   };
 

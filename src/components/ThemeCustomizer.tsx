@@ -91,7 +91,7 @@ const presetThemes = [
 ];
 
 export default function ThemeCustomizer({ isOpen, onClose }: ThemeCustomizerProps) {
-  const { currentTheme, updateCustomTheme, isDarkMode } = useTheme();
+  const { currentTheme, updateCustomTheme } = useTheme();
   const [customColors, setCustomColors] = useState(currentTheme);
 
   if (!isOpen) return null;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🎛️ ProgressBar Component - Dynamic Theme Edition
  * Ultra-smooth progress tracking with album-based colors
  */
@@ -34,11 +34,8 @@ export default function ProgressBar({
   const progressBarRef = useRef<HTMLDivElement>(null);
   const { currentTheme } = useTheme();
 
-  // Use drag progress when dragging, otherwise use real-time progress
   const displayProgress = isDragging ? dragProgress : currentProgress;
   const progressPercent = duration > 0 ? (displayProgress / duration) * 100 : 0;
-
-  // Calculate position from mouse/touch event
   const getProgressFromEvent = useCallback((event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) => {
     if (!progressBarRef.current) return 0;
 
@@ -49,8 +46,6 @@ export default function ProgressBar({
     
     return (percent / 100) * duration;
   }, [duration]);
-
-  // Mouse handlers
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -72,12 +67,8 @@ export default function ProgressBar({
     
     const finalProgress = getProgressFromEvent(event);
     setIsDragging(false);
-    
-    // Seek to the final position
     onSeek(Math.round(finalProgress));
   }, [isDragging, getProgressFromEvent, onSeek]);
-
-  // Click to seek (when not dragging)
   const handleClick = useCallback((event: React.MouseEvent) => {
     if (isDragging) return;
     event.preventDefault();
@@ -86,8 +77,6 @@ export default function ProgressBar({
     const newProgress = getProgressFromEvent(event);
     onSeek(Math.round(newProgress));
   }, [isDragging, getProgressFromEvent, onSeek]);
-
-  // Global mouse event listeners
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
@@ -122,22 +111,21 @@ export default function ProgressBar({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         style={{
-          backgroundColor: currentTheme.backgroundSecondary,
+          backgroundColor: 'rgba(255, 255, 255, 0.1)', // Darker background for better contrast
           borderRadius: '9999px',
-          // Make sure it's not being dragged by the window
           WebkitAppRegion: 'no-drag',
         } as React.CSSProperties}
       >
-        {/* Progress Fill */}
+        {/* Progress Fill - Made White */}
         <div
           className="absolute left-0 top-0 h-full rounded-full transition-all duration-150 pointer-events-none"
           style={{ 
             width: `${Math.max(0, Math.min(100, progressPercent))}%`,
             background: isDragging 
-              ? `linear-gradient(90deg, ${currentTheme.accent} 0%, ${currentTheme.secondary} 100%)`
+              ? '#ffffff'
               : isPlaying 
-                ? `linear-gradient(90deg, ${currentTheme.primary} 0%, ${currentTheme.secondary} 100%)`
-                : currentTheme.textMuted,
+                ? '#ffffff'
+                : 'rgba(255, 255, 255, 0.6)',
           }}
         />
         

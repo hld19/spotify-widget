@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🎵 useSpotify Hook - Real-Time Everything
  * Ultra-responsive real-time updates for all playback data
  */
@@ -35,54 +35,44 @@ interface SpotifyState {
 }
 
 export function useSpotify() {
-  // Core state
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [playerState, setPlayerState] = useState<SpotifyState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  // Real-time progress tracking
   const [realTimeProgress, setRealTimeProgress] = useState<number>(0);
   const [lastApiUpdate, setLastApiUpdate] = useState<number>(0);
   const [isUserSeeking, setIsUserSeeking] = useState(false);
   
-  // New state for enhanced features
   const [recentlyPlayed, setRecentlyPlayed] = useState<SpotifyRecentlyPlayedItem[]>([]);
   const [playlists, setPlaylists] = useState<SpotifyPlaylistItem[]>([]);
   const [devices, setDevices] = useState<any[]>([]);
   const [volume, setVolume] = useState<number>(50);
-  const [updateInterval, setUpdateInterval] = useState<number>(1000);
   const [queue, setQueue] = useState<any>({ queue: [] });
   const [savedTracks, setSavedTracks] = useState<Record<string, boolean>>({});
   
-  // Internal state
   const [isVisible, setIsVisible] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize
   useEffect(() => {
     console.log('🎵 Initializing real-time Spotify hook...');
     
-    // Check authentication status
     const authStatus = api.isAuthenticated();
     console.log('🔍 Initial auth status:', authStatus);
     setIsAuthenticated(authStatus);
     setIsReady(true);
     
-    // Listen for authentication changes more frequently
     const checkAuthPeriodically = setInterval(() => {
       const currentAuthStatus = api.isAuthenticated();
       if (currentAuthStatus !== isAuthenticated) {
         console.log('🔄 Auth status changed:', currentAuthStatus);
         setIsAuthenticated(currentAuthStatus);
       }
-    }, 500); // Check every 500ms
+    }, 500);
 
     return () => clearInterval(checkAuthPeriodically);
   }, [isAuthenticated]);
 
-  // Real-time progress updater (60fps when playing)
   useEffect(() => {
     if (playerState?.is_playing && !isUserSeeking) {
       progressIntervalRef.current = setInterval(() => {
@@ -92,7 +82,7 @@ export function useSpotify() {
           playerState.item?.duration_ms || 0
         );
         setRealTimeProgress(newProgress);
-      }, 16); // 60fps updates (16ms)
+      }, 16);
       
       return () => {
         if (progressIntervalRef.current) {
@@ -100,12 +90,10 @@ export function useSpotify() {
         }
       };
     } else {
-      // Use API progress when not playing or when user is seeking
       setRealTimeProgress(playerState?.progress_ms || 0);
     }
   }, [playerState, lastApiUpdate, isUserSeeking]);
 
-  // Fetch current playback state
   const fetchPlaybackState = useCallback(async () => {
     if (!api.isAuthenticated()) {
       setIsAuthenticated(false);
@@ -121,7 +109,6 @@ export function useSpotify() {
         setRealTimeProgress(state.progress_ms || 0);
         setVolume(state.device?.volume_percent || 50);
         
-        // Fetch queue periodically
         if (state.is_playing) {
           const queueData = await api.getQueue();
           setQueue(queueData);
@@ -130,16 +117,12 @@ export function useSpotify() {
       setError(null);
     } catch (err) {
       console.error('❌ Failed to fetch playback state:', err);
-      // Don't show error notification for this common error
-      
-      // If auth error, mark as unauthenticated
       if (err instanceof Error && err.message.includes('401')) {
         setIsAuthenticated(false);
       }
     }
   }, []);
 
-  // Fetch recently played tracks
   const fetchRecentlyPlayed = useCallback(async () => {
     if (!api.isAuthenticated()) return;
     
@@ -151,7 +134,6 @@ export function useSpotify() {
     }
   }, []);
 
-  // Fetch user playlists
   const fetchPlaylists = useCallback(async () => {
     if (!api.isAuthenticated()) return;
     
@@ -163,7 +145,6 @@ export function useSpotify() {
     }
   }, []);
 
-  // Fetch available devices
   const fetchDevices = useCallback(async () => {
     if (!api.isAuthenticated()) return;
     
@@ -175,25 +156,20 @@ export function useSpotify() {
     }
   }, []);
 
-  // High-frequency polling for real-time updates
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    // Initial fetch
     fetchPlaybackState();
     fetchRecentlyPlayed();
     fetchPlaylists();
     fetchDevices();
 
-    // Much faster polling for real-time feel
-    const pollInterval = isVisible ? 1000 : 3000; // 1s when visible, 3s when hidden
+    const pollInterval = isVisible ? 1000 : 3000;
     intervalRef.current = setInterval(fetchPlaybackState, pollInterval);
     
-    // Less frequent updates for other data
     const dataInterval = setInterval(() => {
       fetchRecentlyPlayed();
       fetchDevices();
-    }, 30000); // 30 seconds
+          }, 30000);
 
     return () => {
       if (intervalRef.current) {
@@ -202,15 +178,12 @@ export function useSpotify() {
       clearInterval(dataInterval);
     };
   }, [isAuthenticated, isVisible, fetchPlaybackState, fetchRecentlyPlayed, fetchPlaylists, fetchDevices]);
-
-  // Visibility change handler
   useEffect(() => {
     const handleVisibilityChange = () => {
       const visible = !document.hidden;
       setIsVisible(visible);
       
       if (visible && isAuthenticated) {
-        // Fetch immediately when becoming visible
         fetchPlaybackState();
       }
     };
@@ -218,17 +191,12 @@ export function useSpotify() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isAuthenticated, fetchPlaybackState]);
-
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Don't handle shortcuts when typing in inputs
       if (document.activeElement?.tagName === 'INPUT' || 
           document.activeElement?.tagName === 'TEXTAREA') {
         return;
       }
-
-      // Ctrl/Cmd shortcuts
       const ctrlOrCmd = event.ctrlKey || event.metaKey;
 
       switch (event.key) {
@@ -288,7 +256,6 @@ export function useSpotify() {
         case 'M':
           if (ctrlOrCmd) {
             event.preventDefault();
-            // Dispatch custom event for mini mode toggle
             window.dispatchEvent(new CustomEvent('toggle-mini-mode'));
           }
           break;
@@ -296,7 +263,6 @@ export function useSpotify() {
         case 'H':
           if (ctrlOrCmd) {
             event.preventDefault();
-            // Dispatch custom event for tabs toggle
             window.dispatchEvent(new CustomEvent('toggle-tabs'));
           }
           break;
@@ -304,7 +270,6 @@ export function useSpotify() {
         case 'L':
           if (ctrlOrCmd && playerState?.item) {
             event.preventDefault();
-            // TODO: Implement like/save track
             console.log('Like track:', playerState.item.name);
           }
           break;
@@ -318,16 +283,13 @@ export function useSpotify() {
         case '/':
           if (ctrlOrCmd) {
             event.preventDefault();
-            // Dispatch custom event for search focus
             window.dispatchEvent(new CustomEvent('focus-search'));
           }
           break;
         case '?':
           event.preventDefault();
-          // Dispatch custom event to show shortcuts
           window.dispatchEvent(new CustomEvent('show-shortcuts'));
           break;
-        // Media keys
         case 'MediaPlayPause':
           event.preventDefault();
           if (playerState?.is_playing) {
@@ -350,14 +312,11 @@ export function useSpotify() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [playerState, volume]);
-
-  // Control functions with immediate feedback
   const controls = {
     play: async (contextUri?: string, uris?: string[]) => {
       try {
         console.log('▶️ Playing...');
         
-        // Immediate optimistic update
         if (playerState) {
           setPlayerState({ ...playerState, is_playing: true });
           setLastApiUpdate(Date.now());
@@ -365,12 +324,9 @@ export function useSpotify() {
         
         await api.play(contextUri, uris);
         
-        // Quick refresh
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Play failed:', err);
-        // Don't show error notification
-        // Revert optimistic update
         setTimeout(fetchPlaybackState, 100);
       }
     },
@@ -379,19 +335,15 @@ export function useSpotify() {
       try {
         console.log('⏸️ Pausing...');
         
-        // Immediate optimistic update
         if (playerState) {
           setPlayerState({ ...playerState, is_playing: false });
         }
         
         await api.pause();
         
-        // Quick refresh
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Pause failed:', err);
-        // Don't show error notification
-        // Revert optimistic update
         setTimeout(fetchPlaybackState, 100);
       }
     },
@@ -400,11 +352,9 @@ export function useSpotify() {
       try {
         console.log('⏭️ Next track...');
         await api.skipToNext();
-        // Immediate refresh for track changes
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Next track failed:', err);
-        // Don't show error notification
       }
     },
 
@@ -412,11 +362,9 @@ export function useSpotify() {
       try {
         console.log('⏮️ Previous track...');
         await api.skipToPrevious();
-        // Immediate refresh for track changes
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Previous track failed:', err);
-        // Don't show error notification
       }
     },
 
@@ -424,10 +372,8 @@ export function useSpotify() {
       try {
         console.log(`🎯 Seeking to ${Math.floor(positionMs / 1000)}s...`);
         
-        // Mark as user seeking to prevent progress interference
         setIsUserSeeking(true);
         
-        // Immediate optimistic update
         if (playerState) {
           setPlayerState({ 
             ...playerState, 
@@ -438,19 +384,15 @@ export function useSpotify() {
           setLastApiUpdate(Date.now());
         }
         
-        // Perform the actual seek
         await api.seek(positionMs);
         
-        // Quick state refresh and resume normal progress tracking
         setTimeout(() => {
           fetchPlaybackState();
           setIsUserSeeking(false);
         }, 50);
       } catch (err) {
         console.error('❌ Seek failed:', err);
-        // Don't show error notification
         setIsUserSeeking(false);
-        // Revert optimistic update on error
         setTimeout(fetchPlaybackState, 100);
       }
     },
@@ -458,18 +400,16 @@ export function useSpotify() {
     setVolume: async (volumePercent: number) => {
       try {
         console.log(`🔊 Setting volume to ${volumePercent}%...`);
-        setVolume(volumePercent); // Optimistic update
+        setVolume(volumePercent);
         await api.setVolume(volumePercent);
       } catch (err) {
         console.error('❌ Volume change failed:', err);
-        // Don't show error notification
       }
     },
 
     setShuffle: async (state: boolean) => {
       try {
         console.log(`🔀 Setting shuffle to ${state}...`);
-        // Optimistic update
         if (playerState) {
           setPlayerState({ ...playerState, shuffle_state: state });
         }
@@ -477,7 +417,6 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Shuffle change failed:', err);
-        // Don't show error notification
         setTimeout(fetchPlaybackState, 100);
       }
     },
@@ -485,7 +424,6 @@ export function useSpotify() {
     setRepeat: async (state: 'track' | 'context' | 'off') => {
       try {
         console.log(`🔁 Setting repeat to ${state}...`);
-        // Optimistic update
         if (playerState) {
           setPlayerState({ ...playerState, repeat_state: state });
         }
@@ -493,7 +431,6 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 200);
       } catch (err) {
         console.error('❌ Repeat change failed:', err);
-        // Don't show error notification
         setTimeout(fetchPlaybackState, 100);
       }
     },
@@ -505,7 +442,6 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Play track failed:', err);
-        // Don't show error notification
       }
     },
     
@@ -519,7 +455,6 @@ export function useSpotify() {
         setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('❌ Play playlist failed:', err);
-        // Don't show error notification
       }
     },
     
@@ -527,10 +462,8 @@ export function useSpotify() {
       try {
         console.log('➕ Adding to queue:', uri);
         await api.addToQueue(uri);
-        // Success - no notification needed
       } catch (err) {
         console.error('❌ Add to queue failed:', err);
-        // Don't show error notification
       }
     },
     
@@ -544,7 +477,6 @@ export function useSpotify() {
         }, 300);
       } catch (err) {
         console.error('❌ Transfer playback failed:', err);
-        // Don't show error notification
       }
     },
 
@@ -555,10 +487,8 @@ export function useSpotify() {
           ...prev,
           [trackId]: save
         }));
-        // Notification will be handled by the component using useNotifications
       } catch (error) {
         console.error('❌ Save track failed:', error);
-        // Don't show error notification
       }
     }
   };
@@ -581,7 +511,6 @@ export function useSpotify() {
   };
 
   return {
-    // State
     isReady,
     isAuthenticated,
     playerState,
@@ -592,15 +521,10 @@ export function useSpotify() {
     devices,
     volume,
     
-    // Real-time computed values
     currentProgress: realTimeProgress,
-    
-    // Actions
     login,
     logout,
     controls,
-    
-    // Utilities
     clearError: () => setError(null),
     refreshRecentlyPlayed: fetchRecentlyPlayed,
     refreshPlaylists: fetchPlaylists,

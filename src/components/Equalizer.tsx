@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Equalizer Component
  * Audio equalizer settings
  */
@@ -10,11 +10,6 @@ import { XMarkIcon, MusicalNoteIcon } from '@heroicons/react/24/solid';
 interface EqualizerProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-interface EqualizerBand {
-  frequency: string;
-  gain: number;
 }
 
 const presets = {
@@ -229,7 +224,6 @@ export default function Equalizer({ isOpen, onClose }: EqualizerProps) {
             </button>
             <button
               onClick={() => {
-                // Save equalizer settings
                 localStorage.setItem('equalizer', JSON.stringify({ preset: selectedPreset, bands, preamp }));
                 onClose();
               }}

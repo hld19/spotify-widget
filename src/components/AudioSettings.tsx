@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Audio Settings Component
  * Advanced audio controls including crossfade, normalization, and quality settings
  */
@@ -23,7 +23,6 @@ export default function AudioSettings({ isOpen, onClose }: AudioSettingsProps) {
   const [audioQuality, setAudioQuality] = useState('high');
   const [showEqualizer, setShowEqualizer] = useState(false);
 
-  // Load saved settings
   useEffect(() => {
     const savedSettings = localStorage.getItem('audioSettings');
     if (savedSettings) {

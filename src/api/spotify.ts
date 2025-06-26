@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🎵 Spotify API Module - Completely Revamped
  * Simple, reliable, and bulletproof Spotify integration
  */
@@ -6,7 +6,9 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
-// Types
+const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "your_spotify_client_id_here";
+
+
 interface SpotifyToken {
   access_token: string;
   refresh_token?: string;
@@ -24,6 +26,7 @@ interface SpotifyTrack {
   };
   duration_ms: number;
   uri: string;
+  is_local?: boolean; 
 }
 
 interface SpotifyPlaybackState {
@@ -64,7 +67,6 @@ interface SpotifyRecentlyPlayedItem {
   };
 }
 
-// Simple state management
 class SpotifyAPI {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
@@ -93,7 +95,6 @@ class SpotifyAPI {
       localStorage.setItem('spotify_refresh_token', token.refresh_token);
     }
     localStorage.setItem('spotify_access_token', token.access_token);
-    // Save token expiration for 30 days
     const expirationTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
     localStorage.setItem('spotify_token_expires', expirationTime.toString());
   }
@@ -127,19 +128,15 @@ class SpotifyAPI {
     }
   }
 
-  // Use arrow functions to preserve 'this' context
   login = async () => {
     try {
       console.log('🔐 Starting Spotify login process...');
       
-      // Ensure auth listener is set up
       await this.setupAuthListener();
       
-      // Clear any existing tokens
       this.logout();
       
-      // Start the OAuth flow
-      await invoke('login');
+      await invoke('login', { clientId: SPOTIFY_CLIENT_ID });
       console.log('🌐 OAuth flow initiated - browser should open');
     } catch (error) {
       console.error('❌ Login failed:', error);
@@ -199,7 +196,6 @@ class SpotifyAPI {
       return this.request(endpoint, options);
     }
 
-    // Handle 204 No Content response (no active playback)
     if (response.status === 204) {
       return null as any;
     }
@@ -210,7 +206,6 @@ class SpotifyAPI {
       throw new Error(`Spotify API error: ${response.status}`);
     }
 
-    // Check if response has content before parsing JSON
     const contentLength = response.headers.get('content-length');
     if (contentLength === '0' || response.status === 204) {
       return null as any;
@@ -276,7 +271,6 @@ class SpotifyAPI {
   }
 
   playTrack = async (trackUri: string): Promise<void> => {
-    // Ensure we have the full URI format
     const uri = trackUri.startsWith('spotify:track:') ? trackUri : `spotify:track:${trackUri}`;
     await this.request('/me/player/play', {
       method: 'PUT',
@@ -330,7 +324,6 @@ class SpotifyAPI {
     });
   }
 
-  // New methods for enhanced functionality
   getRecentlyPlayed = async (limit: number = 20): Promise<SpotifyRecentlyPlayedItem[]> => {
     try {
       const response = await this.request<{ items: SpotifyRecentlyPlayedItem[] }>(

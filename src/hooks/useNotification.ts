@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Hook
  * Global notification system with customizable messages
  */
@@ -20,7 +20,6 @@ export function useNotification() {
     type: Notification['type'] = 'info', 
     duration: number = 3000
   ) => {
-    // Filter out all API error messages to reduce notification spam
     const ignoredErrors = [
       'Failed to fetch playback state',
       'Failed to play track',

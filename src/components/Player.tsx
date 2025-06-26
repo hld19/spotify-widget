@@ -1,10 +1,11 @@
-/**
+﻿/**
  * Player Component - Completely Revamped Horizontal Widget
  * Modern, feature-rich Spotify controller with playlist support
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { invoke } from '@tauri-apps/api/core';
 import { 
   PlayIcon, 
   PauseIcon, 
@@ -15,17 +16,13 @@ import {
   ArrowPathRoundedSquareIcon,
   ArrowsRightLeftIcon,
   QueueListIcon,
-  ClockIcon,
   MusicalNoteIcon,
   MagnifyingGlassIcon,
   ComputerDesktopIcon,
-  HeartIcon,
   PlusIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-  ViewColumnsIcon,
-  ShareIcon,
-  AdjustmentsHorizontalIcon,
+
   XMarkIcon,
   EyeIcon
 } from '@heroicons/react/24/solid';
@@ -38,23 +35,23 @@ import { useSleepTimer } from '../hooks/useSleepTimer';
 import { useGestures } from '../hooks/useGestures';
 import { useNotifications } from '../contexts/NotificationContext';
 import KeyboardShortcuts from './KeyboardShortcuts';
-import Visualizer from './Visualizer';
 import AudioSettings from './AudioSettings';
 import Lyrics from './Lyrics';
 import '../api/spotify';
 
-type TabType = 'now-playing' | 'recent' | 'playlists' | 'search' | 'devices' | 'stats' | 'queue' | 'discover';
+type TabType = 'recent' | 'playlists' | 'search' | 'devices' | 'stats' | 'queue' | 'discover';
 
 export default function Player() {
-  const [activeTab, setActiveTab] = useState<TabType>('now-playing');
+  const [activeTab, setActiveTab] = useState<TabType>('recent');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
-  const [playlistTracks, setPlaylistTracks] = useState<any[]>([]);
+
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
-  const [showTabs, setShowTabs] = useState(true);
+  const [showTabs, setShowTabs] = useState(false);
   const [compactMode, setCompactMode] = useState(() => {
-    return localStorage.getItem('compactMode') === 'true';
+  
+    const saved = localStorage.getItem('compactMode');
+    return saved !== null ? saved === 'true' : true;
   });
   const [miniMode, setMiniMode] = useState(() => {
     return localStorage.getItem('miniMode') === 'true';
@@ -77,7 +74,7 @@ export default function Player() {
     currentProgress,
     error,
     login, 
-    logout,
+
     controls,
     clearError,
     recentlyPlayed,
@@ -85,19 +82,16 @@ export default function Player() {
     devices,
     volume,
     refreshDevices,
-    queue,
-    savedTracks
+    queue
   } = useSpotify();
 
   const {
-    isDarkMode,
     currentTheme,
     updateTheme,
     cssVariables
   } = useTheme();
 
   const {
-    history,
     addTrack,
     getStats,
     clearHistory
@@ -112,21 +106,17 @@ export default function Player() {
     }
   });
 
-  // Update theme when album artwork changes
   useEffect(() => {
     if (playerState?.item?.album?.images?.[0]?.url) {
       updateTheme(playerState.item.album.images[0].url);
     }
   }, [playerState?.item?.album?.images?.[0]?.url, updateTheme]);
-
-  // Track history
   useEffect(() => {
     if (playerState?.item && playerState.is_playing) {
       addTrack(playerState.item);
     }
   }, [playerState?.item?.id, playerState?.is_playing, addTrack]);
 
-  // Apply CSS variables
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(cssVariables).forEach(([property, value]) => {
@@ -134,22 +124,35 @@ export default function Player() {
     });
   }, [cssVariables]);
 
-  // Apply compact mode
   useEffect(() => {
     localStorage.setItem('compactMode', compactMode.toString());
   }, [compactMode]);
 
-  // Apply mini mode
   useEffect(() => {
     localStorage.setItem('miniMode', miniMode.toString());
   }, [miniMode]);
 
-  // Apply transparent mode
   useEffect(() => {
     localStorage.setItem('transparentMode', transparentMode.toString());
   }, [transparentMode]);
 
-  // Listen for custom events
+
+  useEffect(() => {
+    const resizeWindow = async () => {
+      try {
+        await invoke('resize_window_for_tabs', { 
+          showTabs, 
+          compactMode: compactMode 
+        });
+        console.log(`Window resized - tabs: ${showTabs}, compact: ${compactMode}`);
+      } catch (error) {
+        console.error('Failed to resize window:', error);
+      }
+    };
+
+    resizeWindow();
+  }, [showTabs, compactMode]);
+
   useEffect(() => {
     const handleToggleMiniMode = () => {
       setMiniMode(prev => {
@@ -169,27 +172,34 @@ export default function Player() {
 
     const handleFocusSearch = () => {
       setActiveTab('search');
-      // Focus search input after tab change
       setTimeout(() => {
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         searchInput?.focus();
       }, 100);
+    };
+    const handleClickOutside = (event: MouseEvent) => {
+      const volumeControl = document.querySelector('[title="Volume"]');
+      
+      if (!volumeControl?.contains(event.target as Node)) {
+        setIsVolumeVisible(false);
+      }
     };
 
     window.addEventListener('toggle-mini-mode', handleToggleMiniMode);
     window.addEventListener('toggle-tabs', handleToggleTabs);
     window.addEventListener('show-shortcuts', handleShowShortcuts);
     window.addEventListener('focus-search', handleFocusSearch);
+    document.addEventListener('click', handleClickOutside);
 
     return () => {
       window.removeEventListener('toggle-mini-mode', handleToggleMiniMode);
       window.removeEventListener('toggle-tabs', handleToggleTabs);
       window.removeEventListener('show-shortcuts', handleShowShortcuts);
       window.removeEventListener('focus-search', handleFocusSearch);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, []);
 
-  // Load recommendations based on current track
   useEffect(() => {
     const loadRecommendations = async () => {
       if (!playerState?.item?.id) return;
@@ -208,8 +218,6 @@ export default function Player() {
 
     loadRecommendations();
   }, [playerState?.item?.id]);
-
-  // Search functionality
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
@@ -222,49 +230,67 @@ export default function Player() {
     }
   };
 
-  // Share functionality
-  const shareTrack = () => {
-    if (!item) return;
-    
-    const trackUrl = `https://open.spotify.com/track/${item.id}`;
-    const shareText = `🎵 Now playing: ${item.name} by ${item.artists.map(a => a.name).join(', ')}`;
-    
-    // Try native share API first
-    if (navigator.share) {
-      navigator.share({
-        title: item.name,
-        text: shareText,
-        url: trackUrl,
-      }).catch(() => {
-        // Fallback to clipboard
-        copyToClipboard(trackUrl);
-      });
-    } else {
-      // Fallback to clipboard
-      copyToClipboard(trackUrl);
+
+
+
+
+
+
+  const [localAlbumArtCache, setLocalAlbumArtCache] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const findLocalAlbumArt = async () => {
+      if (!playerState?.item || !(playerState.item as any)?.is_local) return;
+      
+      const track = playerState.item;
+      const cacheKey = `${track.artists?.[0]?.name || 'Unknown'}-${track.album?.name || 'Unknown'}`;
+      
+      if (localAlbumArtCache[cacheKey]) return;
+      
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const localMusicPath = localStorage.getItem('localMusicPath');
+        const result = await invoke<string | null>('find_local_album_art', {
+          artist: track.artists?.[0]?.name || 'Unknown Artist',
+          album: track.album?.name || 'Unknown Album',
+          track: track.name || 'Unknown Track',
+          musicDirectory: localMusicPath,
+        });
+        
+        if (result) {
+          setLocalAlbumArtCache(prev => ({
+            ...prev,
+            [cacheKey]: result
+          }));
+          showNotification(`Found local album art for ${track.name}!`, 'success', 2000);
+        }
+      } catch (error) {
+        console.log('Failed to find local album art:', error);
+      }
+    };
+
+    findLocalAlbumArt();
+  }, [playerState?.item?.id, playerState?.item, localAlbumArtCache, showNotification]);
+
+  const getEnhancedAlbumArtUrl = (track: any): string => {
+    if (track?.album?.images?.[0]?.url) {
+      return track.album.images[0].url;
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      showNotification('Track link copied to clipboard!', 'success');
-    });
-  };
-
-  // Load playlist tracks
-  const loadPlaylistTracks = async (playlistId: string) => {
-    try {
-      const { getPlaylistTracks } = await import('../api/spotify');
-      const tracks = await getPlaylistTracks(playlistId);
-      setPlaylistTracks(tracks);
-      setSelectedPlaylist(playlistId);
-    } catch (err) {
-      console.error('Failed to load playlist tracks:', err);
+    
+    if ((track as any)?.is_local) {
+      const cacheKey = `${track.artists?.[0]?.name || 'Unknown'}-${track.album?.name || 'Unknown'}`;
+      const cachedArt = localAlbumArtCache[cacheKey];
+      
+      if (cachedArt) {
+        return cachedArt;
+      }
+      
+      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjNDQ0Ii8+CjxwYXRoIGQ9Ik02MCA2MEgxNDBWMTQwSDYwVjYwWiIgZmlsbD0iIzY2NiIvPgo8cGF0aCBkPSJNODAgODBIMTIwVjEyMEg4MFY4MFoiIGZpbGw9IiM4ODgiLz4KPHN2ZyB4PSI3NSIgeT0iNzUiIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+CjxjaXJjbGUgY3g9IjI1IiBjeT0iMjUiIHI9IjIwIiBmaWxsPSIjYWFhIi8+CjxjaXJjbGUgY3g9IjI1IiBjeT0iMjUiIHI9IjgiIGZpbGw9IiM0NDQiLz4KPC9zdmc+PC9zdmc+';
     }
+    
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzMzIi8+PC9zdmc+';
   };
-
-  // Gesture controls
-  const tabOrder: TabType[] = ['now-playing', 'recent', 'playlists', 'search', 'devices', 'stats', 'queue', 'discover'];
+  const tabOrder: TabType[] = ['recent', 'playlists', 'search', 'devices', 'stats', 'queue', 'discover'];
   
   useGestures(playerRef, {
     onSwipeLeft: () => {
@@ -305,7 +331,6 @@ export default function Player() {
     }
   });
 
-  // Loading state
   if (!isReady) {
     return (
       <div 
@@ -330,8 +355,6 @@ export default function Player() {
       </div>
     );
   }
-
-  // Not authenticated state
   if (!isAuthenticated) {
     return (
       <div 
@@ -378,8 +401,6 @@ export default function Player() {
       </div>
     );
   }
-
-  // No music playing state - check if there's an active device
   if (!playerState) {
     return (
       <div 
@@ -415,15 +436,20 @@ export default function Player() {
   const { item, is_playing, shuffle_state, repeat_state } = playerState || {};
   const hasPlayback = item && playerState;
 
-  // Determine sizing based on compact mode
-  const albumArtSize = compactMode ? 'w-10 h-10' : 'w-12 h-12';
-  const controlButtonSize = compactMode ? 'w-4 h-4' : 'w-5 h-5';
-  const smallControlSize = compactMode ? 'w-3 h-3' : 'w-4 h-4';
-  const playButtonPadding = compactMode ? 'p-1.5' : 'p-2';
-  const sectionPadding = compactMode ? 'p-2' : 'p-3';
-  const tabHeight = compactMode ? 'h-32' : 'h-40';
 
-  // Transparent mode view - only album cover and controls
+  const albumArtSize = showTabs 
+    ? (compactMode ? 'w-20 h-20' : 'w-28 h-28')
+    : (compactMode ? 'w-16 h-16' : 'w-20 h-20');
+  const controlButtonSize = showTabs 
+    ? (compactMode ? 'w-4 h-4' : 'w-5 h-5')
+    : (compactMode ? 'w-4 h-4' : 'w-5 h-5');
+  const smallControlSize = showTabs 
+    ? (compactMode ? 'w-3 h-3' : 'w-4 h-4')
+    : (compactMode ? 'w-3 h-3' : 'w-4 h-4');
+  const playButtonPadding = showTabs 
+    ? (compactMode ? 'p-1.5' : 'p-2')
+    : (compactMode ? 'p-1.5' : 'p-2');
+  const tabHeight = compactMode ? 'h-24' : 'h-28';
   if (transparentMode && hasPlayback) {
     return (
       <div 
@@ -437,7 +463,7 @@ export default function Player() {
       >
         {/* Large Album Art */}
         <img
-          src={item.album.images[0]?.url || ''}
+          src={getEnhancedAlbumArtUrl(item)}
           alt=""
           className="w-24 h-24 rounded-xl shadow-2xl mb-4"
           onError={(e) => {
@@ -489,8 +515,6 @@ export default function Player() {
       </div>
     );
   }
-
-  // Mini mode view - improved to be slimmer
   if (miniMode && hasPlayback) {
     return (
       <div 
@@ -499,15 +523,15 @@ export default function Player() {
         style={{
           background: `linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.backgroundSecondary} 100%)`,
           color: currentTheme.text,
-          maxHeight: '48px', // Reduced from 60px
-          minWidth: '280px' // Ensure minimum width for readability
+          maxHeight: '48px',
+          minWidth: '280px'
         }}
       >
         {/* Mini Album Art */}
         <img
-          src={item.album.images[0]?.url || ''}
+          src={getEnhancedAlbumArtUrl(item)}
           alt=""
-          className="w-6 h-6 rounded flex-shrink-0" // Reduced from w-8 h-8
+          className="w-6 h-6 rounded flex-shrink-0"
           onError={(e) => {
             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzMzIi8+PC9zdmc+';
           }}
@@ -517,7 +541,7 @@ export default function Player() {
         <div className="flex-1 mx-2 min-w-0 overflow-hidden">
           <p className="text-[10px] font-medium truncate leading-tight">{item.name}</p>
           <p className="text-[9px] truncate leading-tight" style={{ color: currentTheme.textSecondary }}>
-            {item.artists.map(a => a.name).join(', ')}
+            {item.artists?.map(a => a.name).join(', ') || 'Unknown Artist'}
           </p>
         </div>
         
@@ -585,36 +609,46 @@ export default function Player() {
   return (
     <div 
       ref={playerRef}
-      data-tauri-drag-region 
       className="w-full h-full rounded-2xl overflow-hidden flex flex-col"
       style={{
-        background: `linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.backgroundSecondary} 100%)`,
+        background: `linear-gradient(135deg, ${currentTheme.background}E6 0%, ${currentTheme.backgroundSecondary}F0 100%)`,
+        backdropFilter: 'blur(10px)',
         color: currentTheme.text,
+
+        minHeight: showTabs 
+          ? (compactMode ? '120px' : '140px') 
+          : (compactMode ? '80px' : '100px'),
+        maxHeight: showTabs 
+          ? 'none' 
+          : (compactMode ? '80px' : '100px'),
       }}
     >
       {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Section - Album Art & Current Track */}
-        <div className={`flex items-center ${sectionPadding} space-x-3 border-r`} style={{ borderColor: currentTheme.border }}>
+      <div data-tauri-drag-region className="flex flex-1 overflow-hidden">
+        {/* Left Section - Album Art & Current Track - Responsive */}
+        <div className={`flex items-center ${!showTabs ? (compactMode ? 'p-2' : 'p-3') : (compactMode ? 'p-2' : 'p-3')} space-x-3 border-r flex-shrink-0`} style={{ borderColor: currentTheme.border }}>
           {hasPlayback ? (
             <>
-              {/* Album Art */}
+              {/* Album Art - Made Bigger */}
               <img
-                src={item.album.images[0]?.url || ''}
+                src={getEnhancedAlbumArtUrl(item)}
                 alt="Album Art"
-                className={`${albumArtSize} rounded-lg shadow-lg flex-shrink-0`}
+                className={`${albumArtSize} rounded-xl shadow-xl flex-shrink-0`}
                 onError={(e) => {
                   e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzMzIi8+PC9zdmc+';
                 }}
               />
               
-              {/* Track Info */}
-              <div className="min-w-0 max-w-[150px]">
-                <h3 className={`font-medium ${compactMode ? 'text-xs' : 'text-sm'} truncate`} style={{ color: currentTheme.text }}>
+              {/* Track Info - Responsive design */}
+              <div className="min-w-0 flex-1" style={{ maxWidth: compactMode ? '140px' : '160px' }}>
+                <h3 className={`font-semibold ${compactMode ? 'text-sm' : 'text-base'} truncate leading-tight`} style={{ color: currentTheme.text }}>
                   {item.name}
                 </h3>
-                <p className={`${compactMode ? 'text-[10px]' : 'text-xs'} truncate`} style={{ color: currentTheme.textSecondary }}>
-                  {item.artists.map(a => a.name).join(', ')}
+                <p className={`${compactMode ? 'text-xs' : 'text-sm'} truncate leading-tight`} style={{ color: currentTheme.textSecondary }}>
+                  {item.artists?.map(a => a.name).join(', ') || 'Unknown Artist'}
+                </p>
+                <p className={`${compactMode ? 'text-[10px]' : 'text-xs'} truncate leading-tight mt-1`} style={{ color: currentTheme.textMuted }}>
+                  {item.album.name}
                 </p>
               </div>
             </>
@@ -629,10 +663,10 @@ export default function Player() {
       )}
         </div>
 
-        {/* Center Section - Controls & Progress */}
-        <div className={`flex-1 flex flex-col justify-center ${compactMode ? 'px-2' : 'px-4'}`}>
+        {/* Center Section - Controls & Progress - More Compact */}
+        <div className={`flex-1 flex flex-col justify-center ${!showTabs ? (compactMode ? 'px-2 py-1' : 'px-3 py-2') : (compactMode ? 'px-1 py-1' : 'px-3 py-2')}`}>
           {/* Playback Controls */}
-          <div className={`flex items-center justify-center ${compactMode ? 'space-x-2 mb-1' : 'space-x-3 mb-2'}`}>
+          <div className={`flex items-center justify-center ${compactMode ? 'space-x-1 mb-1' : 'space-x-2 mb-1'}`}>
             {/* Shuffle */}
             <button
               onClick={() => controls.setShuffle(!shuffle_state)}
@@ -708,21 +742,22 @@ export default function Player() {
       )}
         </div>
 
-        {/* Right Section - Volume & Settings */}
-        <div className={`flex items-center ${sectionPadding} space-x-1 border-l`} style={{ borderColor: currentTheme.border }}>
+        {/* Right Section - Simplified with Menu */}
+        <div className={`flex items-center ${!showTabs ? (compactMode ? 'px-2 py-1' : 'px-3 py-2') : (compactMode ? 'px-2 py-1' : 'px-3 py-2')} space-x-2 border-l`} style={{ borderColor: currentTheme.border }}>
           {/* Volume Control */}
           <div className="relative">
             <button
               onClick={() => setIsVolumeVisible(!isVolumeVisible)}
-              className="p-2 rounded-lg transition-colors"
+              className="p-2 rounded-lg transition-colors hover:bg-opacity-10"
               style={{ color: currentTheme.textSecondary }}
+              title="Volume"
             >
-              {volume === 0 ? <SpeakerXMarkIcon className="w-5 h-5" /> : <SpeakerWaveIcon className="w-5 h-5" />}
+              {volume === 0 ? <SpeakerXMarkIcon className="w-4 h-4" /> : <SpeakerWaveIcon className="w-4 h-4" />}
             </button>
             
             {isVolumeVisible && (
               <div 
-                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 rounded-lg shadow-lg"
+                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 rounded-lg shadow-lg z-50"
                 style={{ backgroundColor: currentTheme.backgroundSecondary }}
               >
                 <input
@@ -732,7 +767,7 @@ export default function Player() {
                   value={volume}
                   onChange={(e) => controls.setVolume(parseInt(e.target.value))}
                   className="w-24 h-2"
-                  style={{ accentColor: currentTheme.primary }}
+                  style={{ accentColor: '#ffffff' }}
                 />
               </div>
             )}
@@ -741,122 +776,21 @@ export default function Player() {
           {/* Show/Hide Tabs */}
           <button
             onClick={() => setShowTabs(!showTabs)}
-            className="p-2 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors hover:bg-opacity-10"
             style={{ color: currentTheme.textSecondary }}
             title={showTabs ? "Hide tabs" : "Show tabs"}
           >
             {showTabs ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronUpIcon className="w-4 h-4" />}
           </button>
 
-          {/* Sleep Timer */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                if (sleepTimer.isActive) {
-                  sleepTimer.stopTimer();
-                } else {
-                  // Show timer options
-                  const menu = document.getElementById('sleep-timer-menu');
-                  if (menu) {
-                    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-                  }
-                }
-              }}
-              className={`p-2 rounded-lg transition-colors ${sleepTimer.isActive ? 'text-orange-500' : ''}`}
-              style={{ color: sleepTimer.isActive ? currentTheme.accent : currentTheme.textSecondary }}
-              title={sleepTimer.isActive ? `Sleep timer: ${sleepTimer.formattedTime}` : "Sleep timer"}
-            >
-              <ClockIcon className="w-4 h-4" />
-            </button>
-            
-            {/* Timer Menu */}
-            <div 
-              id="sleep-timer-menu"
-              className="absolute top-full right-0 mt-2 p-2 rounded-lg shadow-lg"
-              style={{ 
-                backgroundColor: currentTheme.backgroundSecondary,
-                display: 'none',
-                minWidth: '150px',
-                zIndex: 50
-              }}
-            >
-              <p className="text-xs font-semibold mb-2" style={{ color: currentTheme.text }}>
-                Sleep Timer
-              </p>
-              <div className="space-y-1">
-                {[15, 30, 45, 60, 90, 120].map(minutes => (
-                <button
-                    key={minutes}
-                    onClick={() => {
-                      sleepTimer.startTimer(minutes);
-                      document.getElementById('sleep-timer-menu')!.style.display = 'none';
-                    }}
-                    className="w-full text-left px-2 py-1 text-xs rounded hover:bg-opacity-10"
-                    style={{ 
-                      color: currentTheme.textSecondary,
-                      backgroundColor: 'transparent' 
-                    }}
-                  onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = currentTheme.primary + '20';
-                  }}
-                  onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                    {minutes < 60 ? `${minutes} minutes` : `${minutes / 60} hour${minutes > 60 ? 's' : ''}`}
-                </button>
-                ))}
-              </div>
-          </div>
-        </div>
-
-          {/* Mini Mode */}
-          {hasPlayback && (
-            <button
-              onClick={() => {
-                setMiniMode(true);
-                localStorage.setItem('miniMode', 'true');
-              }}
-              className="p-2 rounded-lg transition-colors"
-              style={{ color: currentTheme.textSecondary }}
-              title="Mini mode"
-            >
-              <ViewColumnsIcon className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Transparent Mode */}
-          {hasPlayback && (
-            <button
-              onClick={() => {
-                setTransparentMode(true);
-                localStorage.setItem('transparentMode', 'true');
-              }}
-              className="p-2 rounded-lg transition-colors"
-              style={{ color: currentTheme.textSecondary }}
-              title="Transparent mode"
-            >
-              <EyeIcon className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Audio Settings */}
-          <button
-            onClick={() => setShowAudioSettings(true)}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: currentTheme.textSecondary }}
-            title="Audio settings"
-          >
-            <AdjustmentsHorizontalIcon className="w-4 h-4" />
-          </button>
-
-          {/* Settings */}
-          <Link 
+                    {/* Settings Button */}
+          <Link
             to="/settings"
-            className="p-2 rounded-lg transition-colors"
-                style={{ color: currentTheme.textSecondary }}
-              >
-            <Cog6ToothIcon className="w-5 h-5" />
+            className="p-2 rounded-lg transition-colors hover:bg-opacity-10"
+            style={{ color: currentTheme.textSecondary }}
+            title="Settings"
+          >
+            <Cog6ToothIcon className="w-4 h-4" />
           </Link>
         </div>
             </div>
@@ -867,18 +801,6 @@ export default function Player() {
           {/* Tab Navigation */}
           <div className="flex border-b" style={{ borderColor: currentTheme.border }}>
               <button 
-              onClick={() => setActiveTab('now-playing')}
-              className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
-                activeTab === 'now-playing' ? 'border-b-2' : ''
-              }`}
-              style={{
-                color: activeTab === 'now-playing' ? currentTheme.primary : currentTheme.textSecondary,
-                borderColor: currentTheme.primary,
-              }}
-            >
-              Playing
-            </button>
-            <button
               onClick={() => setActiveTab('recent')}
               className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
                 activeTab === 'recent' ? 'border-b-2' : ''
@@ -889,8 +811,8 @@ export default function Player() {
               }}
             >
               Recent
-              </button>
-              <button
+            </button>
+            <button
               onClick={() => setActiveTab('playlists')}
               className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
                 activeTab === 'playlists' ? 'border-b-2' : ''
@@ -913,7 +835,7 @@ export default function Player() {
               }}
             >
               Search
-              </button>
+            </button>
             <button
               onClick={() => {
                 setActiveTab('devices');
@@ -969,70 +891,6 @@ export default function Player() {
 
           {/* Tab Content */}
           <div className={tabHeight + ' overflow-y-auto'}>
-            {/* Now Playing Tab */}
-            {activeTab === 'now-playing' && hasPlayback && (
-              <div className="p-4 relative">
-                {/* Visualizer Background */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <Visualizer isPlaying={is_playing} className="absolute inset-0 opacity-30" />
-          </div>
-          
-                <div className="flex items-start space-x-4 relative z-10">
-                  <img
-                    src={item.album.images[0]?.url || ''}
-                    alt="Album Art"
-                    className="w-24 h-24 rounded-lg shadow-lg"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg" style={{ color: currentTheme.text }}>{item.name}</h3>
-                    <p style={{ color: currentTheme.textSecondary }}>{item.artists.map(a => a.name).join(', ')}</p>
-                    <p className="text-sm" style={{ color: currentTheme.textMuted }}>{item.album.name}</p>
-                    <div className="flex space-x-2 mt-2">
-            <button 
-                        onClick={() => controls.addToQueue(`spotify:track:${item.id}`)}
-                        className="p-1 rounded transition-colors"
-              style={{ color: currentTheme.textSecondary }}
-                        title="Add to queue"
-                      >
-                        <PlusIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const isLiked = savedTracks[item.id] || false;
-                          controls.saveTrack(item.id, !isLiked);
-                          showNotification(
-                            !isLiked ? 'Added to Liked Songs' : 'Removed from Liked Songs',
-                            'success'
-                          );
-                        }}
-                        className="p-1 rounded transition-colors"
-                        style={{ color: savedTracks[item.id] ? currentTheme.primary : currentTheme.textSecondary }}
-                        title={savedTracks[item.id] ? "Unlike" : "Like"}
-                      >
-                        <HeartIcon className={`w-4 h-4 ${savedTracks[item.id] ? 'fill-current' : ''}`} />
-                      </button>
-                      <button
-                        onClick={shareTrack}
-                        className="p-1 rounded transition-colors"
-                        style={{ color: currentTheme.textSecondary }}
-                        title="Share"
-                      >
-                        <ShareIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setShowLyrics(true)}
-                        className="p-1 rounded transition-colors"
-                        style={{ color: currentTheme.textSecondary }}
-                        title="Lyrics"
-                      >
-                        <MusicalNoteIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Recently Played Tab */}
             {activeTab === 'recent' && (
               <div className="p-2">
@@ -1049,10 +907,18 @@ export default function Player() {
               onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = `${currentTheme.backgroundSecondary}00`;
                         }}
-                        onClick={() => controls.playTrack(item.track.id)}
+                        onClick={async () => {
+                          try {
+                            console.log('Playing track:', item.track.name);
+                            await controls.playTrack(item.track.uri);
+                          } catch (error) {
+                            console.error('Error playing track:', error);
+                            showNotification(`Failed to play track: ${item.track.name}`, 'error', 3000);
+                          }
+                        }}
                       >
                         <img
-                          src={item.track.album.images[2]?.url || item.track.album.images[0]?.url}
+                          src={item.track.album.images?.[2]?.url || item.track.album.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjNTU1Ii8+PC9zdmc+'}
                           alt=""
                           className="w-10 h-10 rounded"
                         />
@@ -1061,7 +927,7 @@ export default function Player() {
                             {item.track.name}
                           </p>
                           <p className="text-xs truncate" style={{ color: currentTheme.textSecondary }}>
-                            {item.track.artists.map(a => a.name).join(', ')}
+                            {item.track.artists?.map(a => a.name).join(', ') || 'Unknown Artist'}
                           </p>
                         </div>
                         <PlayIcon className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: currentTheme.primary }} />
@@ -1090,10 +956,18 @@ export default function Player() {
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = `${currentTheme.backgroundSecondary}00`;
                         }}
-                        onClick={() => controls.playPlaylist(playlist.uri, shuffle_state)}
+                        onClick={async () => {
+                          try {
+                            console.log('Playing playlist:', playlist.name);
+                            await controls.playPlaylist(playlist.uri, shuffle_state);
+                          } catch (error) {
+                            console.error('Error playing playlist:', error);
+                            showNotification(`Failed to play playlist: ${playlist.name}`, 'error', 3000);
+                          }
+                        }}
                       >
                         <img
-                          src={playlist.images[0]?.url || ''}
+                          src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjNTU1Ii8+PC9zdmc+'}
                           alt=""
                           className="w-10 h-10 rounded"
                           onError={(e) => {
@@ -1105,7 +979,7 @@ export default function Player() {
                             {playlist.name}
                           </p>
                           <p className="text-xs" style={{ color: currentTheme.textSecondary }}>
-                            {playlist.tracks.total} tracks
+                            {playlist.tracks?.total || 0} tracks
                           </p>
                         </div>
                         <QueueListIcon className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: currentTheme.primary }} />
@@ -1157,10 +1031,18 @@ export default function Player() {
               onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = `${currentTheme.backgroundSecondary}00`;
                         }}
-                        onClick={() => controls.playTrack(track.id)}
+                        onClick={async () => {
+                          try {
+                            console.log('Playing search result:', track.name);
+                            await controls.playTrack(track.uri);
+                          } catch (error) {
+                            console.error('Error playing search result:', error);
+                            showNotification(`Failed to play track: ${track.name}`, 'error', 3000);
+                          }
+                        }}
                       >
                         <img
-                          src={track.album.images[2]?.url || track.album.images[0]?.url}
+                          src={track.album.images?.[2]?.url || track.album.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjNTU1Ii8+PC9zdmc+'}
                           alt=""
                           className="w-10 h-10 rounded"
                         />
@@ -1169,7 +1051,7 @@ export default function Player() {
                             {track.name}
                           </p>
                           <p className="text-xs truncate" style={{ color: currentTheme.textSecondary }}>
-                            {track.artists.map((a: any) => a.name).join(', ')}
+                            {track.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist'}
                           </p>
                         </div>
                         <PlayIcon className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: currentTheme.primary }} />
@@ -1282,7 +1164,7 @@ export default function Player() {
                           </p>
                           <div className="flex items-center space-x-3">
                             <img
-                              src={stats.mostPlayedTrack.track.album.images[2]?.url || stats.mostPlayedTrack.track.album.images[0]?.url}
+                              src={stats.mostPlayedTrack.track.album.images?.[2]?.url || stats.mostPlayedTrack.track.album.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjNTU1Ii8+PC9zdmc+'}
                               alt=""
                               className="w-10 h-10 rounded"
                             />
@@ -1505,6 +1387,8 @@ export default function Player() {
               currentProgress={currentProgress}
               isPlaying={is_playing}
             />
+
+
     </div>
   );
 } 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Sleep Timer Hook
  * Automatically pauses playback after a set duration
  */
@@ -17,7 +17,6 @@ export function useSleepTimer({ onTimerEnd }: SleepTimerOptions) {
   const endTimeRef = useRef<number | null>(null);
 
   const startTimer = useCallback((minutes: number) => {
-    // Clear any existing timer
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -28,13 +27,11 @@ export function useSleepTimer({ onTimerEnd }: SleepTimerOptions) {
     setIsActive(true);
     setSelectedDuration(minutes);
 
-    // Update remaining time every second
     intervalRef.current = setInterval(() => {
       if (endTimeRef.current) {
         const remaining = Math.max(0, endTimeRef.current - Date.now());
         
         if (remaining === 0) {
-          // Timer ended
           stopTimer();
           onTimerEnd();
         } else {
@@ -60,8 +57,6 @@ export function useSleepTimer({ onTimerEnd }: SleepTimerOptions) {
       setRemainingTime(prev => prev + minutes * 60 * 1000);
     }
   }, []);
-
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) {

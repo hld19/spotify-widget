@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lyrics Component
  * Display song lyrics with synced highlighting
  */
@@ -20,8 +20,6 @@ interface LyricLine {
   time: number;
   text: string;
 }
-
-// Placeholder lyrics until proper API integration
 const placeholderLyrics: LyricLine[] = [
   { time: 0, text: "♪ Instrumental ♪" },
   { time: 5000, text: "Searching for lyrics..." },
@@ -33,12 +31,11 @@ const placeholderLyrics: LyricLine[] = [
 
 export default function Lyrics({ isOpen, onClose, trackName, artistName, currentProgress, isPlaying }: LyricsProps) {
   const { currentTheme } = useTheme();
-  const [lyrics, setLyrics] = useState<LyricLine[]>(placeholderLyrics);
+  const [lyrics] = useState<LyricLine[]>(placeholderLyrics);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Update current line based on progress
   useEffect(() => {
     const currentIndex = lyrics.findIndex((line, index) => {
       const nextLine = lyrics[index + 1];
@@ -50,7 +47,6 @@ export default function Lyrics({ isOpen, onClose, trackName, artistName, current
     }
   }, [currentProgress, lyrics, currentLineIndex]);
 
-  // Auto-scroll to current line
   useEffect(() => {
     if (currentLineIndex >= 0 && lineRefs.current[currentLineIndex] && lyricsContainerRef.current) {
       const currentLine = lineRefs.current[currentLineIndex];
@@ -70,16 +66,9 @@ export default function Lyrics({ isOpen, onClose, trackName, artistName, current
     }
   }, [currentLineIndex]);
 
-  // Future: Load real lyrics from API
   useEffect(() => {
-    // This is where we would fetch real lyrics
-    // For now, using placeholder
     const loadLyrics = async () => {
       try {
-        // Future API call would go here
-        // const response = await fetch(`/api/lyrics/${trackId}`);
-        // const data = await response.json();
-        // setLyrics(data.lines);
       } catch (error) {
         console.error('Failed to load lyrics:', error);
       }
@@ -152,8 +141,6 @@ export default function Lyrics({ isOpen, onClose, trackName, artistName, current
                   textShadow: index === currentLineIndex ? `0 0 20px ${currentTheme.primary}40` : 'none',
                 }}
                 onClick={() => {
-                  // Future: Seek to this line's timestamp
-                  // controls.seek(line.time);
                 }}
               >
                 {line.text}
@@ -176,7 +163,6 @@ export default function Lyrics({ isOpen, onClose, trackName, artistName, current
           
           <button
             onClick={() => {
-              // Future: Open lyrics provider settings
               alert('Lyrics provider settings coming soon!');
             }}
             className="text-xs px-3 py-1 rounded-lg transition-colors"
