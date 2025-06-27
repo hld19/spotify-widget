@@ -111,7 +111,7 @@ export default function ProgressBar({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)', // Darker background for better contrast
+          backgroundColor: 'rgba(255, 255, 255, 0.1)', 
           borderRadius: '9999px',
           WebkitAppRegion: 'no-drag',
         } as React.CSSProperties}

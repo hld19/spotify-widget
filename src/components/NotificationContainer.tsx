@@ -38,11 +38,11 @@ export default function NotificationContainer({ notifications, onRemove }: Notif
   const getColor = (type: Notification['type']) => {
     switch (type) {
       case 'success':
-        return '#10b981'; // green
+        return '#10b981';  
       case 'error':
-        return '#ef4444'; // red
+        return '#ef4444';
       case 'warning':
-        return '#f59e0b'; // yellow
+        return '#f59e0b'; 
       case 'info':
       default:
         return currentTheme.primary;

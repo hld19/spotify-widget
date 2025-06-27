@@ -25,7 +25,6 @@ interface ThemeColors {
 
 export function useTheme() {
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [albumArt, setAlbumArt] = useState<string>('');
   const [themeColors, setThemeColors] = useState<ThemeColors>({
     light: getDefaultLightTheme(),
     dark: getDefaultDarkTheme(),
@@ -55,7 +54,7 @@ export function useTheme() {
           const imageData = ctx.getImageData(0, 0, size, size);
           const data = imageData.data;
           const colorMap = new Map<string, number>();
-          for (let i = 0; i < data.length; i += 8) { // Less aggressive skipping
+          for (let i = 0; i < data.length; i += 8) { 
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
@@ -80,8 +79,8 @@ export function useTheme() {
               const vibrancy = max - min;
               return { color: `rgb(${r}, ${g}, ${b})`, count, vibrancy, r, g, b };
             })
-            .filter(item => item.vibrancy > 30) // Only vibrant colors
-            .sort((a, b) => (b.count * b.vibrancy) - (a.count * a.vibrancy)) // Sort by frequency * vibrancy
+            .filter(item => item.vibrancy > 30)  
+            .sort((a, b) => (b.count * b.vibrancy) - (a.count * a.vibrancy)) 
             .slice(0, 3)
             .map(item => item.color);
           
@@ -209,7 +208,6 @@ export function useTheme() {
     
     console.log('🎨 Updating theme for image:', imageUrl);
     setIsExtracting(true);
-    setAlbumArt(imageUrl);
     
     try {
       const colors = await extractColorsFromImage(imageUrl);

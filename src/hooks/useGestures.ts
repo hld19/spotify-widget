@@ -54,7 +54,7 @@ export function useGestures(elementRef: React.RefObject<HTMLElement>, handlers: 
     if (handlers.onLongPress) {
       longPressTimerRef.current = setTimeout(() => {
         handlers.onLongPress?.();
-        touchStartRef.current = null; // Prevent swipe after long press
+        touchStartRef.current = null; 
       }, LONG_PRESS_DURATION);
     }
   }, [handlers]);

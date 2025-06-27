@@ -86,7 +86,7 @@ export default function WidgetPosition({ isOpen, onClose }: WidgetPositionProps)
           y: (screenHeight - windowSize.height) / 2,
         };
       case 'bottom-left':
-        return { x: margin, y: screenHeight - windowSize.height - margin - 40 }; // 40 for taskbar
+        return { x: margin, y: screenHeight - windowSize.height - margin - 40 }; 
       case 'bottom-center':
         return {
           x: (screenWidth - windowSize.width) / 2,

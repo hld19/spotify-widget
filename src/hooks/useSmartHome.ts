@@ -169,23 +169,23 @@ export function useSmartHome() {
       midiAccess.inputs.forEach((input: any) => {
         input.onmidimessage = (event: any) => {
           const [status, note, velocity] = event.data;
-          if (status === 144 && velocity > 0) { // Note On
+          if (status === 144 && velocity > 0) { 
             switch (note) {
-              case 60: // Middle C
+              case 60: 
                 executeCommand('play');
                 break;
-              case 62: // D
+              case 62: 
                 executeCommand('pause');
                 break;
-              case 64: // E
+              case 64: 
                 executeCommand('next');
                 break;
-              case 65: // F
+              case 65: 
                 executeCommand('previous');
                 break;
             }
-          } else if (status === 176) { // Control Change
-            if (note === 7) { // Volume
+          } else if (status === 176) { 
+            if (note === 7) { 
               executeCommand('volume', { level: Math.round((velocity / 127) * 100) });
             }
           }
@@ -203,17 +203,17 @@ export function useSmartHome() {
       for (let i = 0; i < gamepads.length; i++) {
         const gamepad = gamepads[i];
         if (!gamepad) continue;
-        if (gamepad.buttons[0].pressed) { // A button
+        if (gamepad.buttons[0].pressed) {  
           executeCommand('play');
-        } else if (gamepad.buttons[1].pressed) { // B button
+        } else if (gamepad.buttons[1].pressed) { 
           executeCommand('pause');
-        } else if (gamepad.buttons[14].pressed) { // D-pad left
+        } else if (gamepad.buttons[14].pressed) { 
           executeCommand('previous');
-        } else if (gamepad.buttons[15].pressed) { // D-pad right
+        } else if (gamepad.buttons[15].pressed) { 
           executeCommand('next');
         }
 
-        const volumeAxis = gamepad.axes[1]; // Right stick Y
+        const volumeAxis = gamepad.axes[1]; 
         if (Math.abs(volumeAxis) > 0.5) {
           const volume = Math.round((1 - volumeAxis) * 50);
           executeCommand('volume', { level: volume });

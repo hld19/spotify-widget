@@ -10,7 +10,6 @@ import {
   MoonIcon, 
   PowerIcon,
   ArrowLeftIcon,
-  InformationCircleIcon,
   CogIcon,
   BellIcon,
   ShieldCheckIcon,

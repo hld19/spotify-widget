@@ -10,6 +10,7 @@ A modern, cross-platform desktop widget for Spotify that provides seamless music
 - [Configuration](#configuration)
 - [Usage](#usage)
 - [Architecture](#architecture)
+- [Authentication Flow](#authentication-flow)
 - [Application Flow](#application-flow)
 - [Development](#development)
 - [Roadmap](#roadmap)
@@ -66,8 +67,8 @@ The Spotify Desktop Widget is a lightweight, feature-rich application built with
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/spotify-desktop-widget.git
-   cd spotify-desktop-widget
+   git clone https://github.com/hld19/spotify-widget.git
+   cd spotify-widget
    ```
 
 2. **Install dependencies**
@@ -95,10 +96,21 @@ The Spotify Desktop Widget is a lightweight, feature-rich application built with
      ```
      VITE_SPOTIFY_CLIENT_ID=your_actual_client_id_here
      ```
+
+   **Method B: Using environment variable**
+   ```bash
+   # Windows (PowerShell)
+   $env:VITE_SPOTIFY_CLIENT_ID="your_actual_client_id_here"
    
-   **Method B: Direct code edit**
-   - Edit `src/api/spotify.ts`
-   - Find line 5 and replace the fallback value with your Client ID
+   # Windows (Command Prompt)
+   set VITE_SPOTIFY_CLIENT_ID=your_actual_client_id_here
+   
+   # macOS/Linux
+   export VITE_SPOTIFY_CLIENT_ID="your_actual_client_id_here"
+   ```
+
+   **Method C: Direct code edit (Not recommended for Git commits)**
+   - Edit `src/api/spotify.ts` and replace the Client ID directly
 
 5. **Launch the application**
    ```bash
@@ -106,17 +118,6 @@ The Spotify Desktop Widget is a lightweight, feature-rich application built with
    ```
 
 ## Configuration
-
-### Spotify API Setup
-
-The application requires a Spotify Developer App for API access:
-
-1. Navigate to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)
-2. Create a new app with the following settings:
-   - App name: "Spotify Desktop Widget"
-   - App description: "Desktop widget for Spotify control"
-   - Redirect URI: `http://127.0.0.1:14700/callback`
-   - APIs used: Web Playback SDK, Web API
 
 ### Application Settings
 
@@ -127,6 +128,19 @@ The widget offers extensive customization options:
 - **Audio Settings**: Crossfade, normalization, gapless playback
 - **Local Files**: Custom music directory specification for album art detection
 - **Sleep Timer**: Configurable auto-pause intervals
+
+### Handling Exposed Client IDs
+
+If you accidentally committed your Client ID to Git:
+
+1. **Regenerate your Client ID** in the Spotify Developer Dashboard
+2. **Clean Git history** (advanced users only):
+   ```bash
+   git filter-branch --force --index-filter \
+   'git rm --cached --ignore-unmatch src/api/spotify.ts' \
+   --prune-empty --tag-name-filter cat -- --all
+   ```
+3. **Accept it**: Client IDs are not considered secret and exposure is generally acceptable
 
 ## Usage
 
@@ -150,6 +164,24 @@ The widget offers extensive customization options:
 - **Theme Customization**: Automatic theme generation from album artwork
 - **Settings Access**: Click the gear icon to open comprehensive settings
 - **Local File Support**: Specify your music directory for enhanced album art
+
+### Keyboard Shortcuts
+
+#### Global Hotkeys (work when app is not focused)
+- `Ctrl+Shift+←` - Previous track
+- `Ctrl+Shift+→` - Next track
+- `Ctrl+Shift+Q` - Quit application
+
+#### In-App Shortcuts
+- `Space` - Play/Pause
+- `←/→` - Skip tracks
+- `↑/↓` - Volume control
+
+### Window Management
+
+- **Always on Top**: Keep widget above other windows
+- **Taskbar Integration**: Show/hide from Windows taskbar
+- **Dynamic Resizing**: Automatic size adjustment based on tab visibility
 
 ## Architecture
 
@@ -197,50 +229,58 @@ spotify-desktop-widget/
 - **AudioSettings**: Advanced audio configuration options
 - **ThemeCustomizer**: Dynamic theme generation and customization
 
+## Authentication Flow
+
+The application uses OAuth 2.0 with PKCE (Proof Key for Code Exchange) for secure authentication with Spotify:
+
+```mermaid
+sequenceDiagram
+    participant F as Frontend<br/>(React)
+    participant B as Backend<br/>(Rust/Tauri)
+    participant S as Spotify API
+
+    F->>B: User clicks "Login"
+    B->>B: Generates PKCE challenge
+    B->>S: Opens Spotify authorization URL
+    Note over S: User logs in and grants permissions
+    S->>B: Redirects to "http://127.0.0.1:14700/callback"<br/>with auth code
+    B->>F: Hits the callback URL
+    B->>S: Exchanges auth code and PKCE<br/>verifier for tokens
+    S->>B: Returns access and refresh tokens
+    B->>F: Emits 'spotify-auth-token' event<br/>with tokens
+    F->>F: Stores tokens in localStorage<br/>and reloads
+```
+
+### Authentication Process Details
+
+1. **User Initiation**: User clicks "Login with Spotify" in the frontend
+2. **PKCE Challenge**: Backend generates PKCE challenge and opens Spotify authorization URL
+3. **User Authorization**: User logs in and grants permissions in browser
+4. **Callback Handling**: Spotify redirects to callback URL with authorization code
+5. **Token Exchange**: Backend exchanges auth code and PKCE verifier for tokens
+6. **Token Storage**: Frontend stores tokens in localStorage and reloads application
+
 ## Application Flow
-
-### Authentication Process
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   User Login    │───▶│  OAuth 2.0 PKCE │───▶│ Token Storage   │
-│   Request       │    │  Authentication  │    │ (30 days)       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                                ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Application     │◀───│  Spotify API     │◀───│ Access Token    │
-│ Initialization  │    │  Authorization   │    │ Validation      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
 
 ### Data Flow Architecture
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Spotify Web API │───▶│   React State    │───▶│ UI Components   │
-│ (Real-time)     │    │   Management     │    │ (Player, Tabs)  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
-         │              ┌──────────────────┐             │
-         └─────────────▶│ Local Storage    │◀────────────┘
-                        │ (Persistence)    │
-                        └──────────────────┘
+```mermaid
+graph TD
+    A["Spotify Web API<br/>(Real-time)"] --> B["React State<br/>Management"]
+    B --> C["UI Components<br/>(Player, Tabs)"]
+    A --> D["Local Storage<br/>(Persistence)"]
+    C --> D
 ```
 
 ### Theme Generation Process
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Album Artwork   │───▶│ Color Extraction │───▶│ Theme Variables │
-│ (Current Track) │    │ Algorithm        │    │ Generation      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                                ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ CSS Variables   │◀───│ Color Harmony    │◀───│ Vibrancy        │
-│ Application     │    │ Calculation      │    │ Analysis        │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+```mermaid
+graph LR
+    A["Album Artwork<br/>(Current Track)"] --> B["Color Extraction<br/>Algorithm"]
+    B --> C["Theme Variables<br/>Generation"]
+    C --> D["Vibrancy<br/>Analysis"]
+    D --> E["Color Harmony<br/>Calculation"]
+    E --> F["CSS Variables<br/>Application"]
 ```
 
 ## Development
@@ -270,6 +310,38 @@ npm run test
 npm run lint
 ```
 
+### Building for Different Platforms
+
+#### Windows
+```bash
+# Prerequisites
+# - Visual Studio Build Tools or Visual Studio Community
+# - Windows 10 SDK
+
+npm run tauri build
+```
+
+#### macOS
+```bash
+# Prerequisites
+# - Xcode Command Line Tools: xcode-select --install
+
+npm run tauri build
+```
+
+#### Linux
+```bash
+# Prerequisites (Ubuntu/Debian)
+sudo apt update
+sudo apt install libwebkit2gtk-4.0-dev build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+
+# Prerequisites (Fedora)
+sudo dnf install webkit2gtk3-devel openssl-devel curl wget libappindicator-gtk3-devel librsvg2-devel
+sudo dnf group install "C Development Tools and Libraries"
+
+npm run tauri build
+```
+
 ### Code Structure Guidelines
 
 - **Components**: Functional components with TypeScript
@@ -280,14 +352,14 @@ npm run lint
 
 ## Roadmap
 
-### Phase 1: Core Stability ✅
+### Phase 1: Core Stability (Completed)
 - [x] Basic playback controls
 - [x] Spotify API integration
 - [x] OAuth 2.0 authentication
 - [x] Cross-platform compatibility
 - [x] Basic theming system
 
-### Phase 2: Enhanced UI/UX ✅
+### Phase 2: Enhanced UI/UX (Completed)
 - [x] Multi-tab interface
 - [x] Dynamic theme generation
 - [x] Responsive design implementation
@@ -348,4 +420,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-**Built with** ❤️ **using React, TypeScript, Rust, and Tauri**
+**Built with React, TypeScript, Rust, and Tauri**

@@ -12,7 +12,7 @@ interface SleepTimerOptions {
 export function useSleepTimer({ onTimerEnd }: SleepTimerOptions) {
   const [isActive, setIsActive] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
-  const [selectedDuration, setSelectedDuration] = useState(15); // minutes
+  const [selectedDuration, setSelectedDuration] = useState(15); 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number | null>(null);
 
