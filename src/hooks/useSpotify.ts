@@ -102,6 +102,9 @@ export function useSpotify() {
     }
 
     try {
+      // Proactively check and refresh token if needed
+      await api.checkAndRefreshToken();
+      
       const state = await api.getCurrentPlayback();
       if (state) {
         setPlayerState(state);
@@ -169,13 +172,19 @@ export function useSpotify() {
     const dataInterval = setInterval(() => {
       fetchRecentlyPlayed();
       fetchDevices();
-          }, 30000);
+    }, 30000);
+
+    // Check and refresh token every 5 minutes to ensure continuous authentication
+    const tokenCheckInterval = setInterval(() => {
+      api.checkAndRefreshToken();
+    }, 5 * 60 * 1000); // 5 minutes
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
       clearInterval(dataInterval);
+      clearInterval(tokenCheckInterval);
     };
   }, [isAuthenticated, isVisible, fetchPlaybackState, fetchRecentlyPlayed, fetchPlaylists, fetchDevices]);
   useEffect(() => {

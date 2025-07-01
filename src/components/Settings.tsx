@@ -10,7 +10,6 @@ import {
   MoonIcon, 
   PowerIcon,
   ArrowLeftIcon,
-  InformationCircleIcon,
   CogIcon,
   BellIcon,
   ShieldCheckIcon,
@@ -50,9 +49,15 @@ export default function Settings() {
   const [miniMode, setMiniMode] = useState(() => {
     return localStorage.getItem('miniMode') === 'true';
   });
-  const [transparentMode, setTransparentMode] = useState(() => {
-    return localStorage.getItem('transparentMode') === 'true';
+  const [transparencyLevel, setTransparencyLevel] = useState(() => {
+    const saved = localStorage.getItem('transparencyLevel');
+    return saved ? Math.max(5, parseInt(saved)) : 100;
   });
+
+  useEffect(() => {
+    const thumbColor = transparencyLevel < 50 ? currentTheme.accent : currentTheme.primary;
+    document.documentElement.style.setProperty('--transparency-thumb-color', thumbColor);
+  }, [transparencyLevel, currentTheme.accent, currentTheme.primary]);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [localMusicPath, setLocalMusicPath] = useState(() => {
     return localStorage.getItem('localMusicPath') || '';
@@ -104,7 +109,7 @@ export default function Settings() {
         maxWidth: '100%'   
       }}
     >
-      {/* Header - More compact */}
+
       <div 
         data-tauri-drag-region
         className="flex items-center justify-between px-2 py-2 border-b"
@@ -138,9 +143,8 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Content - Fixed scrolling */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100% - 60px)' }}>
-        <div className="p-2 space-y-3 pb-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden" data-no-drag>
+        <div className="p-2 space-y-3 pb-6" data-no-drag>
           
           {/* Appearance Section */}
           <section className="space-y-2">
@@ -292,7 +296,8 @@ export default function Settings() {
               </button>
             </div>
 
-            {/* Transparent Mode Toggle */}
+
+            {/* Widget Transparency */}
             <div className="flex items-center justify-between p-3 rounded-lg border" style={{
               backgroundColor: currentTheme.backgroundSecondary + '20',
               borderColor: currentTheme.border + '40',
@@ -300,31 +305,41 @@ export default function Settings() {
               <div className="flex items-center space-x-3">
                 <EyeIcon className="w-4 h-4" style={{ color: currentTheme.primary }} />
                 <div>
-                  <p className="font-medium text-sm">Transparent Mode</p>
+                  <p className="font-medium text-sm">Widget Transparency</p>
                   <p className="text-xs opacity-75" style={{ color: currentTheme.textMuted }}>
-                    Semi-transparent overlay style
+                    {transparencyLevel}% opacity
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  console.log('Transparent mode toggle clicked, current:', transparentMode);
-                  const newValue = !transparentMode;
-                  setTransparentMode(newValue);
-                  localStorage.setItem('transparentMode', newValue.toString());
-                  console.log('Transparent mode set to:', newValue);
-                }}
-                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                style={{
-                  backgroundColor: transparentMode ? currentTheme.primary : currentTheme.backgroundSecondary,
-                }}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                    transparentMode ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
+              <div className="flex items-center space-x-3">
+                <div className="w-24 relative">
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    value={transparencyLevel}
+                    onChange={(e) => {
+                      const newValue = parseInt(e.target.value);
+                      setTransparencyLevel(newValue);
+                      localStorage.setItem('transparencyLevel', newValue.toString());
+                      window.dispatchEvent(new CustomEvent('transparencyChanged'));
+                    }}
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, 
+                        ${currentTheme.backgroundSecondary} 0%, 
+                        ${currentTheme.primary} 100%)`,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-medium min-w-[3rem] text-center px-2 py-1 rounded-md" style={{ 
+                  backgroundColor: currentTheme.primary + '20',
+                  color: currentTheme.primary
+                }}>
+                  {transparencyLevel}%
+                </span>
+              </div>
             </div>
           </section>
 
