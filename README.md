@@ -348,4 +348,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-**Built with** ❤️ **using React, TypeScript, Rust, and Tauri**
+**Built with React, TypeScript, Rust, and Tauri**
