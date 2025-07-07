@@ -66,8 +66,8 @@ The Spotify Desktop Widget is a lightweight, feature-rich application built with
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/spotify-desktop-widget.git
-   cd spotify-desktop-widget
+   git clone https://github.com/hld19/spotify-widget.git
+   cd spotify-widget
    ```
 
 2. **Install dependencies**
