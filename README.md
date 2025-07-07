@@ -96,10 +96,7 @@ The Spotify Desktop Widget is a lightweight, feature-rich application built with
      VITE_SPOTIFY_CLIENT_ID=your_actual_client_id_here
      ```
    
-   **Method B: Direct code edit**
-   - Edit `src/api/spotify.ts`
-   - Find line 5 and replace the fallback value with your Client ID
-
+  
 5. **Launch the application**
    ```bash
    npm run tauri dev
