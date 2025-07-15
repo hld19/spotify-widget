@@ -1,13 +1,7 @@
-﻿/**
- * 🎵 Spotify API Module - Completely Revamped
- * Simple, reliable, and bulletproof Spotify integration
- */
-
-import { invoke } from '@tauri-apps/api/core';
+﻿import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "your_spotify_client_id_here";
-
 
 interface SpotifyToken {
   access_token: string;
@@ -72,10 +66,12 @@ class SpotifyAPI {
   private refreshToken: string | null = null;
   private baseUrl = 'https://api.spotify.com/v1';
   private authListenerSetup = false;
+  private refreshTimeout: NodeJS.Timeout | null = null;
   
   constructor() {
     this.loadTokens();
     this.setupAuthListener();
+    this.scheduleExistingTokenRefresh();
   }
 
   private loadTokens() {
@@ -87,6 +83,25 @@ class SpotifyAPI {
     });
   }
 
+  private scheduleExistingTokenRefresh() {
+    if (!this.accessToken || !this.refreshToken) return;
+    
+    const tokenExpiry = localStorage.getItem('spotify_token_expires');
+    if (!tokenExpiry) return;
+    
+    const expiryTime = parseInt(tokenExpiry);
+    const currentTime = Date.now();
+    const timeUntilExpiry = expiryTime - currentTime;
+    
+    if (timeUntilExpiry > 0) {
+      const secondsUntilExpiry = Math.floor(timeUntilExpiry / 1000);
+      console.log(`🔍 Existing token expires in ${Math.floor(secondsUntilExpiry / 60)} minutes`);
+      this.scheduleTokenRefresh(secondsUntilExpiry);
+    } else {
+      console.log('⚠️ Existing token already expired, will refresh on next API call');
+    }
+  }
+
   private saveTokens(token: SpotifyToken) {
     console.log('💾 Saving new tokens to storage');
     this.accessToken = token.access_token;
@@ -95,8 +110,11 @@ class SpotifyAPI {
       localStorage.setItem('spotify_refresh_token', token.refresh_token);
     }
     localStorage.setItem('spotify_access_token', token.access_token);
-    const expirationTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
+    
+    const expirationTime = Date.now() + ((token.expires_in || 3600) * 1000);
     localStorage.setItem('spotify_token_expires', expirationTime.toString());
+    
+    this.scheduleTokenRefresh(token.expires_in || 3600);
   }
 
   private async setupAuthListener() {
@@ -114,7 +132,6 @@ class SpotifyAPI {
         
         this.saveTokens(event.payload);
         
-        // Notify the app that authentication is complete
         console.log('🔄 Reloading app to apply authentication...');
         setTimeout(() => {
           window.location.reload();
@@ -146,6 +163,12 @@ class SpotifyAPI {
 
   logout = () => {
     console.log('🚪 Logging out and clearing all tokens...');
+    
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+      this.refreshTimeout = null;
+    }
+    
     this.accessToken = null;
     this.refreshToken = null;
     localStorage.removeItem('spotify_access_token');
@@ -167,6 +190,24 @@ class SpotifyAPI {
     return hasToken && isTokenValid;
   }
 
+  private isTokenNearExpiry = (): boolean => {
+    const tokenExpiry = localStorage.getItem('spotify_token_expires');
+    if (!tokenExpiry) return false;
+    
+    const expiryTime = parseInt(tokenExpiry);
+    const currentTime = Date.now();
+    const tenMinutesInMs = 10 * 60 * 1000;
+    
+    return (expiryTime - currentTime) < tenMinutesInMs;
+  }
+
+  checkAndRefreshToken = async (): Promise<void> => {
+    if (this.isTokenNearExpiry() && this.refreshToken) {
+      console.log('⏰ Token near expiry, proactively refreshing...');
+      await this.refreshAccessToken();
+    }
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     if (!this.accessToken) {
       throw new Error('No access token available');
@@ -184,9 +225,12 @@ class SpotifyAPI {
 
     if (response.status === 401) {
       console.log('🔄 Token expired, attempting refresh...');
-      await this.refreshAccessToken();
-      // Retry with new token
-      return this.request(endpoint, options);
+      const refreshSuccess = await this.refreshAccessToken();
+      if (refreshSuccess) {
+        return this.request(endpoint, options);
+      } else {
+        throw new Error('Token refresh failed - please log in again');
+      }
     }
 
     if (response.status === 429) {
@@ -214,17 +258,38 @@ class SpotifyAPI {
     try {
       return await response.json();
     } catch (e) {
-      // If JSON parsing fails, return null (empty response)
       return null as any;
     }
   }
 
-  private async refreshAccessToken() {
+  private scheduleTokenRefresh(expiresInSeconds: number) {
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+    }
+    
+    const refreshInSeconds = Math.max(300, expiresInSeconds - 300);
+    const refreshInMs = refreshInSeconds * 1000;
+    
+    console.log(`⏰ Scheduling token refresh in ${Math.floor(refreshInSeconds / 60)} minutes`);
+    
+    this.refreshTimeout = setTimeout(async () => {
+      console.log('🔄 Auto-refreshing token...');
+      try {
+        await this.refreshAccessToken();
+      } catch (error) {
+        console.error('❌ Automatic token refresh failed:', error);
+      }
+    }, refreshInMs);
+  }
+
+  private async refreshAccessToken(): Promise<boolean> {
     if (!this.refreshToken) {
-      throw new Error('No refresh token available');
+      console.error('❌ No refresh token available');
+      return false;
     }
 
     try {
+      console.log('🔄 Attempting to refresh access token...');
       const response = await fetch('http://127.0.0.1:14700/refresh-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -232,20 +297,38 @@ class SpotifyAPI {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to refresh token');
+        const errorText = await response.text();
+        console.error('❌ Token refresh failed:', response.status, errorText);
+        
+        if (response.status === 400 || response.status === 401) {
+          console.log('🚪 Refresh token invalid, requiring re-login');
+          this.logout();
+          return false;
+        }
+        
+        throw new Error(`Failed to refresh token: ${response.status}`);
       }
 
       const token = await response.json();
       this.saveTokens(token);
       console.log('✅ Token refreshed successfully');
+      return true;
     } catch (error) {
       console.error('❌ Token refresh failed:', error);
-      this.logout();
-      throw error;
+      
+      if (error instanceof Error && (
+        error.message.includes('400') || 
+        error.message.includes('401') ||
+        error.message.includes('invalid_grant')
+      )) {
+        console.log('🚪 Critical refresh error, logging out');
+        this.logout();
+      }
+      
+      return false;
     }
   }
 
-  // API Methods with arrow functions
   getCurrentPlayback = async (): Promise<SpotifyPlaybackState | null> => {
     try {
       return await this.request<SpotifyPlaybackState>('/me/player');
@@ -434,7 +517,7 @@ class SpotifyAPI {
   }
 
   async getRecommendations(trackIds: string[], limit: number = 20): Promise<any> {
-    const seedTracks = trackIds.slice(0, 5).join(','); // API limits to 5 seed tracks
+    const seedTracks = trackIds.slice(0, 5).join(',');
     return this.request<any>(`/recommendations?seed_tracks=${seedTracks}&limit=${limit}`);
   }
 
@@ -459,13 +542,12 @@ class SpotifyAPI {
   }
 }
 
-// Export singleton instance
 export const spotify = new SpotifyAPI();
 
-// Export individual functions for convenience
 export const login = spotify.login;
 export const logout = spotify.logout;
 export const isAuthenticated = spotify.isAuthenticated;
+export const checkAndRefreshToken = spotify.checkAndRefreshToken;
 export const getCurrentPlayback = spotify.getCurrentPlayback;
 export const play = spotify.play;
 export const playTrack = spotify.playTrack;
@@ -494,5 +576,4 @@ export const getArtistTopTracks = spotify.getArtistTopTracks;
 export const getAlbum = spotify.getAlbum;
 export const getArtist = spotify.getArtist;
 
-// Export types
 export type { SpotifyTrack, SpotifyPlaybackState, SpotifyPlaylistItem, SpotifyRecentlyPlayedItem };

@@ -1,9 +1,4 @@
-﻿/**
- * 🎨 useTheme Hook - Dynamic Album-Based Theming
- * Extracts colors from album artwork and creates beautiful adaptive themes
- */
-
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 
 interface ColorPalette {
   primary: string;
@@ -30,6 +25,47 @@ export function useTheme() {
     dark: getDefaultDarkTheme(),
   });
   const [isExtracting, setIsExtracting] = useState(false);
+  const [hasCustomTheme, setHasCustomTheme] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0); // Force re-renders when needed
+
+  // Load custom theme from localStorage on initialization
+  useEffect(() => {
+    const savedCustomTheme = localStorage.getItem('customTheme');
+    const savedIsDarkMode = localStorage.getItem('isDarkMode');
+    const savedCustomThemeMode = localStorage.getItem('customThemeMode');
+    
+    if (savedIsDarkMode !== null) {
+      setIsDarkMode(savedIsDarkMode === 'true');
+    }
+    
+    if (savedCustomTheme && savedCustomThemeMode) {
+      try {
+        const customColors = JSON.parse(savedCustomTheme);
+        setThemeColors(prev => ({
+          ...prev,
+          [savedCustomThemeMode]: customColors
+        }));
+        setHasCustomTheme(true);
+        console.log('🎨 Loaded custom theme from localStorage');
+      } catch (error) {
+        console.error('Failed to load custom theme:', error);
+        localStorage.removeItem('customTheme');
+        localStorage.removeItem('customThemeMode');
+      }
+    }
+  }, []);
+
+  // Get current theme - this needs to be reactive
+  const currentTheme = themeColors[isDarkMode ? 'dark' : 'light'];
+  
+  // Apply CSS variables whenever currentTheme changes
+  useEffect(() => {
+    const root = document.documentElement;
+    Object.entries(currentTheme).forEach(([key, value]) => {
+      root.style.setProperty(`--color-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
+    });
+    console.log('🎨 Applied CSS variables:', currentTheme);
+  }, [currentTheme, forceUpdate]); // Added forceUpdate as dependency
 
   const extractColorsFromImage = useCallback(async (imageUrl: string): Promise<string[]> => {
     return new Promise((resolve) => {
@@ -100,6 +136,7 @@ export function useTheme() {
       img.src = imageUrl;
     });
   }, []);
+
   const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
     r /= 255;
     g /= 255;
@@ -123,6 +160,7 @@ export function useTheme() {
     
     return [h * 360, s * 100, l * 100];
   };
+
   const hslToRgb = (h: number, s: number, l: number): [number, number, number] => {
     h /= 360;
     s /= 100;
@@ -175,6 +213,7 @@ export function useTheme() {
       const [r, g, b] = hslToRgb(hue, sat, light);
       return alpha === 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${alpha})`;
     };
+
     const darkTheme: ColorPalette = {
       primary: generateColorVariation(h, Math.min(s, 75), Math.max(l, 50)),
       secondary: generateColorVariation(h, Math.max(s - 15, 35), Math.max(l - 5, 40)),
@@ -187,6 +226,7 @@ export function useTheme() {
       border: generateColorVariation(h, Math.max(s - 20, 20), 25, 0.4),
       shadow: generateColorVariation(h, Math.min(s, 50), 5, 0.5),
     };
+
     const lightTheme: ColorPalette = {
       primary: generateColorVariation(h, Math.min(s, 80), Math.max(Math.min(l, 45), 35)),
       secondary: generateColorVariation(h, Math.max(s - 15, 40), Math.max(Math.min(l + 10, 55), 45)),
@@ -204,7 +244,7 @@ export function useTheme() {
   }, []);
 
   const updateTheme = useCallback(async (imageUrl: string) => {
-    if (!imageUrl) return;
+    if (!imageUrl || hasCustomTheme) return; // Don't override custom themes
     
     console.log('🎨 Updating theme for image:', imageUrl);
     setIsExtracting(true);
@@ -213,17 +253,18 @@ export function useTheme() {
       const colors = await extractColorsFromImage(imageUrl);
       const newTheme = generateTheme(colors);
       setThemeColors(newTheme);
+      setForceUpdate(prev => prev + 1); // Force re-render
       console.log('✅ Theme updated with colors:', colors);
     } catch (error) {
       console.error('❌ Theme update failed:', error);
       const fallbackTheme = generateTheme(['#1db954', '#191414', '#ffffff']);
       setThemeColors(fallbackTheme);
+      setForceUpdate(prev => prev + 1);
     } finally {
       setIsExtracting(false);
     }
-  }, [extractColorsFromImage, generateTheme]);
+  }, [extractColorsFromImage, generateTheme, hasCustomTheme]);
 
-  const currentTheme = themeColors[isDarkMode ? 'dark' : 'light'];
   const cssVariables = {
     '--color-primary': currentTheme.primary,
     '--color-secondary': currentTheme.secondary,
@@ -238,18 +279,42 @@ export function useTheme() {
   };
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('isDarkMode', newMode.toString());
+    setForceUpdate(prev => prev + 1); // Force re-render when switching modes
   };
 
   const updateCustomTheme = (customColors: ColorPalette) => {
+    const currentMode = isDarkMode ? 'dark' : 'light';
+    
+    // Update the theme state immediately
+    setThemeColors(prev => ({
+      ...prev,
+      [currentMode]: customColors
+    }));
+    
+    // Save to localStorage with current mode info
     localStorage.setItem('customTheme', JSON.stringify(customColors));
+    localStorage.setItem('customThemeMode', currentMode);
+    setHasCustomTheme(true);
     
-    Object.entries(customColors).forEach(([key, value]) => {
-      document.documentElement.style.setProperty(`--color-${key}`, value);
+    // Force re-render to ensure all components get the new theme
+    setForceUpdate(prev => prev + 1);
+    
+    console.log('🎨 Custom theme applied:', customColors);
+  };
+
+  const resetToDefaultTheme = () => {
+    localStorage.removeItem('customTheme');
+    localStorage.removeItem('customThemeMode');
+    setHasCustomTheme(false);
+    setThemeColors({
+      light: getDefaultLightTheme(),
+      dark: getDefaultDarkTheme(),
     });
-    
-    setIsDarkMode(prev => !prev);
-    setTimeout(() => setIsDarkMode(prev => !prev), 0);
+    setForceUpdate(prev => prev + 1); // Force re-render
+    console.log('🎨 Theme reset to default');
   };
 
   return {
@@ -261,9 +326,12 @@ export function useTheme() {
     isExtracting,
     cssVariables,
     toggleTheme,
-    updateCustomTheme
+    updateCustomTheme,
+    resetToDefaultTheme,
+    hasCustomTheme
   };
 }
+
 function getDefaultDarkTheme(): ColorPalette {
   return {
     primary: '#1db954',

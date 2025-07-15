@@ -96,21 +96,10 @@ The Spotify Desktop Widget is a lightweight, feature-rich application built with
      ```
      VITE_SPOTIFY_CLIENT_ID=your_actual_client_id_here
      ```
-
-   **Method B: Using environment variable**
-   ```bash
-   # Windows (PowerShell)
-   $env:VITE_SPOTIFY_CLIENT_ID="your_actual_client_id_here"
    
-   # Windows (Command Prompt)
-   set VITE_SPOTIFY_CLIENT_ID=your_actual_client_id_here
-   
-   # macOS/Linux
-   export VITE_SPOTIFY_CLIENT_ID="your_actual_client_id_here"
-   ```
-
-   **Method C: Direct code edit (Not recommended for Git commits)**
-   - Edit `src/api/spotify.ts` and replace the Client ID directly
+   **Method B: Direct code edit**
+   - Edit `src/api/spotify.ts`
+   - Find line 5 and replace the fallback value with your Client ID
 
 5. **Launch the application**
    ```bash

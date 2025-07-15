@@ -1,13 +1,7 @@
-/**
- * 🎵 Spotify Widget CSS - Completely Revamped
- * Beautiful, modern styling with smooth animations
- */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Global Styles */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -29,7 +23,6 @@ html, body {
   overflow: hidden;
 }
 
-/* Ensure the app fills the entire window */
 .w-full {
   width: 100% !important;
 }
@@ -38,7 +31,6 @@ html, body {
   height: 100% !important;
 }
 
-/* Custom scrollbar for tab content */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -57,27 +49,46 @@ html, body {
   background: rgba(128, 128, 128, 0.5);
 }
 
-/* Smooth transitions */
 * {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-duration: 200ms;
   transition-timing-function: ease-in-out;
 }
 
-/* Disable text selection on draggable areas */
 [data-tauri-drag-region] {
+  -webkit-app-region: drag;
   -webkit-user-select: none;
   user-select: none;
   cursor: move;
 }
 
-/* Allow interaction with controls */
-button, input, a, [role="button"] {
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] input,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] [role="button"],
+[data-tauri-drag-region] .progress-bar {
   -webkit-app-region: no-drag;
   cursor: pointer;
 }
 
-/* Input styles */
+[data-no-drag],
+[data-no-drag] *,
+.overflow-y-auto,
+.overflow-y-scroll,
+::-webkit-scrollbar,
+::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-track {
+  -webkit-app-region: no-drag !important;
+  cursor: default !important;
+}
+
+.overflow-y-auto {
+  -webkit-app-region: no-drag !important;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: default !important;
+}
+
 input[type="text"] {
   outline: none;
   border: 1px solid transparent;
@@ -89,91 +100,128 @@ input[type="text"]:focus {
   box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
 }
 
-/* Range input styles */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   cursor: pointer;
+  outline: none;
 }
 
 input[type="range"]::-webkit-slider-track {
-  height: 4px;
-  border-radius: 2px;
+  height: 8px;
+  border-radius: 4px;
   background: rgba(255, 255, 255, 0.1);
+  border: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: currentColor;
-  margin-top: -4px;
+  background: #ffffff;
+  border: 2px solid var(--color-primary, #1db954);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
 }
 
-/* Prevent layout shift on hover */
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--color-primary, #1db954);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"]::-ms-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: transparent;
+}
+
+input[type="range"]::-ms-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--color-primary, #1db954);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-ms-fill-lower,
+input[type="range"]::-ms-fill-upper {
+  background: transparent;
+  border: none;
+}
+
 .group:hover {
-  z-index: 10;
+  transform: translateY(-1px);
 }
 
-/* ===== GLOBAL RESET & BASE STYLES ===== */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  outline: 0;
 }
 
 html,
 body,
 #root {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background-color: transparent;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
-/* ===== SMOOTH TRANSITIONS ===== */
-* {
-  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
 
-/* ===== TAURI DRAG REGION ===== */
-[data-tauri-drag-region] {
-  -webkit-app-region: drag;
-  cursor: move;
-}
-
-[data-tauri-drag-region] button,
-[data-tauri-drag-region] input,
-[data-tauri-drag-region] a,
-[data-tauri-drag-region] [role="button"],
-[data-tauri-drag-region] .progress-bar,
-[data-tauri-drag-region] [data-no-drag] {
-  -webkit-app-region: no-drag;
-  cursor: pointer;
-}
-
-/* ===== FOCUS STYLES ===== */
 button:focus-visible,
+input:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #10b981;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: 8px;
 }
 
-/* ===== ANIMATIONS ===== */
 @keyframes spin-smooth {
   from {
     transform: rotate(0deg);
@@ -185,19 +233,19 @@ button:focus-visible,
 
 @keyframes pulse-glow {
   0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 5px currentColor;
   }
   50% {
-    opacity: 1;
-    transform: scale(1.05);
+    opacity: 0.7;
+    box-shadow: 0 0 20px currentColor;
   }
 }
 
 @keyframes slide-in-from-top {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
@@ -214,7 +262,6 @@ button:focus-visible,
   }
 }
 
-/* ===== ANIMATION UTILITIES ===== */
 .animate-spin-smooth {
   animation: spin-smooth 2s linear infinite;
 }
@@ -231,19 +278,18 @@ button:focus-visible,
   animation: slide-in-from-top 0.3s ease-out;
 }
 
-/* ===== MUSIC VISUALIZER ===== */
 .music-bars {
   display: flex;
   align-items: end;
+  height: 20px;
   gap: 2px;
-  height: 16px;
 }
 
 .music-bar {
-  width: 2px;
-  background: #10b981;
-  border-radius: 1px;
-  animation: music-bounce 1.5s ease-in-out infinite;
+  width: 3px;
+  background: currentColor;
+  border-radius: 2px;
+  animation: music-bounce 1s ease-in-out infinite;
 }
 
 .music-bar:nth-child(1) { animation-delay: 0ms; height: 40%; }
@@ -253,19 +299,19 @@ button:focus-visible,
 .music-bar:nth-child(5) { animation-delay: 400ms; height: 70%; }
 
 @keyframes music-bounce {
-  0%, 100% { transform: scaleY(0.3); opacity: 0.5; }
-  50% { transform: scaleY(1); opacity: 1; }
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.3); }
 }
 
-/* ===== LOADING SKELETON ===== */
 .skeleton {
-  background: linear-gradient(90deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.2) 50%, 
-    rgba(255, 255, 255, 0.1) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 75%
+  );
   background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-  border-radius: 8px;
+  animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
@@ -277,40 +323,36 @@ button:focus-visible,
   }
 }
 
-/* ===== SELECTION STYLES ===== */
 ::selection {
-  background: rgba(16, 185, 129, 0.3);
+  background: var(--color-primary);
   color: white;
 }
 
 ::-moz-selection {
-  background: rgba(16, 185, 129, 0.3);
+  background: var(--color-primary);
   color: white;
 }
 
-/* ===== UTILITY CLASSES ===== */
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ===== BACKDROP BLUR FALLBACK ===== */
-@supports not (backdrop-filter: blur(20px)) {
+@supports not (backdrop-filter: blur(12px)) {
   .backdrop-blur-xl {
     background-color: rgba(0, 0, 0, 0.8);
   }
 }
 
-/* Notification animations */
 @keyframes slide-in {
   from {
-    transform: translateX(100%);
     opacity: 0;
+    transform: translateY(20px);
   }
   to {
-    transform: translateX(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -318,8 +360,7 @@ button:focus-visible,
   animation: slide-in 0.3s ease-out;
 }
 
-/* Visualizer blur effect */
 .visualizer-blur {
-  filter: blur(40px);
-  opacity: 0.5;
+  filter: blur(2px);
+  transition: filter 0.3s ease;
 }

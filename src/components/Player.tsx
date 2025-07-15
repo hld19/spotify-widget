@@ -1,7 +1,4 @@
-﻿/**
- * Player Component - Completely Revamped Horizontal Widget
- * Modern, feature-rich Spotify controller with playlist support
- */
+﻿
 
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
@@ -21,10 +18,7 @@ import {
   ComputerDesktopIcon,
   PlusIcon,
   ChevronUpIcon,
-  ChevronDownIcon,
-
-  XMarkIcon,
-  EyeIcon
+    ChevronDownIcon
 } from '@heroicons/react/24/solid';
 import { SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 import ProgressBar from './ProgressBar';
@@ -56,9 +50,39 @@ export default function Player() {
   const [miniMode, setMiniMode] = useState(() => {
     return localStorage.getItem('miniMode') === 'true';
   });
-  const [transparentMode, setTransparentMode] = useState(() => {
-    return localStorage.getItem('transparentMode') === 'true';
+  const [transparencyLevel, setTransparencyLevel] = useState(() => {
+    return parseInt(localStorage.getItem('transparencyLevel') || '100');
   });
+
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'transparencyLevel') {
+        const newValue = parseInt(e.newValue || '100');
+        setTransparencyLevel(newValue);
+      }
+    };
+
+    const handleTransparencyChange = () => {
+      const newValue = parseInt(localStorage.getItem('transparencyLevel') || '100');
+      setTransparencyLevel(newValue);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('transparencyChanged', handleTransparencyChange);
+
+    const interval = setInterval(() => {
+      const currentValue = parseInt(localStorage.getItem('transparencyLevel') || '100');
+      if (currentValue !== transparencyLevel) {
+        setTransparencyLevel(currentValue);
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('transparencyChanged', handleTransparencyChange);
+      clearInterval(interval);
+    };
+  }, [transparencyLevel]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
@@ -133,8 +157,8 @@ export default function Player() {
   }, [miniMode]);
 
   useEffect(() => {
-    localStorage.setItem('transparentMode', transparentMode.toString());
-  }, [transparentMode]);
+    localStorage.setItem('transparencyLevel', transparencyLevel.toString());
+  }, [transparencyLevel]);
 
 
   useEffect(() => {
@@ -450,78 +474,36 @@ export default function Player() {
     ? (compactMode ? 'p-1.5' : 'p-2')
     : (compactMode ? 'p-1.5' : 'p-2');
   const tabHeight = compactMode ? 'h-24' : 'h-28';
-  if (transparentMode && hasPlayback) {
-    return (
-      <div 
-        data-tauri-drag-region
-        className="w-full h-full rounded-2xl overflow-hidden flex flex-col items-center justify-center p-4"
-        style={{
-          background: 'rgba(0, 0, 0, 0.1)',
-          backdropFilter: 'blur(10px)',
-          color: '#ffffff',
-        }}
-      >
-        {/* Large Album Art */}
-        <img
-          src={getEnhancedAlbumArtUrl(item)}
-          alt=""
-          className="w-24 h-24 rounded-xl shadow-2xl mb-4"
-          onError={(e) => {
-            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzMzIi8+PC9zdmc>';
-          }}
-        />
-        
-        {/* Transparent Controls */}
-        <div className="flex items-center space-x-2">
-          <button 
-            onClick={controls.previous}
-            className="p-2 rounded-full transition-all hover:scale-110 bg-black/20"
-            style={{ color: '#ffffff' }}
-          >
-            <BackwardIcon className="w-4 h-4" />
-          </button>
-          
-          <button
-            onClick={() => is_playing ? controls.pause() : controls.play()}
-            className="p-3 rounded-full bg-white/20 backdrop-blur-sm transition-all hover:scale-110"
-            style={{ color: '#ffffff' }}
-          >
-            {is_playing ? 
-              <PauseIcon className="w-5 h-5" /> : 
-              <PlayIcon className="w-5 h-5 ml-0.5" />
-            }
-          </button>
-          
-          <button 
-            onClick={controls.next}
-            className="p-2 rounded-full transition-all hover:scale-110 bg-black/20"
-            style={{ color: '#ffffff' }}
-          >
-            <ForwardIcon className="w-4 h-4" />
-          </button>
-          
-          {/* Exit transparent mode */}
-          <button
-            onClick={() => {
-              setTransparentMode(false);
-              localStorage.setItem('transparentMode', 'false');
-            }}
-            className="p-2 rounded-full ml-2 bg-black/20"
-            style={{ color: '#ffffff' }}
-          >
-            <XMarkIcon className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
-  }
+  
+  const colorToRgba = (color: string, alpha: number) => {
+    if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);  
+      const b = parseInt(hex.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    
+    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
+    }
+    
+    return `rgba(255, 255, 255, ${alpha})`;
+  };
+
   if (miniMode && hasPlayback) {
+    const miniBackgroundOpacity = Math.max(0.1, transparencyLevel / 100);
+
     return (
       <div 
         data-tauri-drag-region
         className="w-full h-full rounded-2xl overflow-hidden flex items-center px-2 py-1"
         style={{
-          background: `linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.backgroundSecondary} 100%)`,
+          background: transparencyLevel < 100 
+            ? `linear-gradient(135deg, ${colorToRgba(currentTheme.background, miniBackgroundOpacity)} 0%, ${colorToRgba(currentTheme.backgroundSecondary, miniBackgroundOpacity)} 100%)`
+            : `linear-gradient(135deg, ${currentTheme.background} 0%, ${currentTheme.backgroundSecondary} 100%)`,
+          backdropFilter: transparencyLevel < 100 ? 'blur(8px)' : 'none',
           color: currentTheme.text,
           maxHeight: '48px',
           minWidth: '280px'
@@ -577,18 +559,7 @@ export default function Player() {
             <ForwardIcon className="w-3 h-3" />
           </button>
           
-          {/* Mode toggle */}
-          <button
-            onClick={() => {
-              setTransparentMode(true);
-              localStorage.setItem('transparentMode', 'true');
-            }}
-            className="p-0.5 rounded ml-1"
-            style={{ color: currentTheme.textMuted }}
-            title="Transparent mode"
-          >
-            <EyeIcon className="w-3 h-3" />
-          </button>
+
           
           {/* Exit mini mode */}
           <button
@@ -606,15 +577,18 @@ export default function Player() {
     );
   }
 
+  const backgroundOpacity = Math.max(0.1, transparencyLevel / 100);
+
   return (
     <div 
       ref={playerRef}
       className="w-full h-full rounded-2xl overflow-hidden flex flex-col"
       style={{
-        background: `linear-gradient(135deg, ${currentTheme.background}E6 0%, ${currentTheme.backgroundSecondary}F0 100%)`,
-        backdropFilter: 'blur(10px)',
+        background: transparencyLevel < 100 
+          ? `linear-gradient(135deg, ${colorToRgba(currentTheme.background, backgroundOpacity)} 0%, ${colorToRgba(currentTheme.backgroundSecondary, backgroundOpacity)} 100%)`
+          : `linear-gradient(135deg, ${currentTheme.background}E6 0%, ${currentTheme.backgroundSecondary}F0 100%)`,
+        backdropFilter: transparencyLevel < 100 ? 'blur(10px)' : 'blur(10px)',
         color: currentTheme.text,
-
         minHeight: showTabs 
           ? (compactMode ? '120px' : '140px') 
           : (compactMode ? '80px' : '100px'),
@@ -626,7 +600,7 @@ export default function Player() {
       {/* Main Content Area */}
       <div data-tauri-drag-region className="flex flex-1 overflow-hidden">
         {/* Left Section - Album Art & Current Track - Responsive */}
-        <div className={`flex items-center ${!showTabs ? (compactMode ? 'p-2' : 'p-3') : (compactMode ? 'p-2' : 'p-3')} space-x-3 border-r flex-shrink-0`} style={{ borderColor: currentTheme.border }}>
+        <div className={`flex items-center ${!showTabs ? (compactMode ? 'p-2' : 'p-3') : (compactMode ? 'p-2' : 'p-3')} space-x-3 flex-shrink-0`}>
           {hasPlayback ? (
             <>
               {/* Album Art - Made Bigger */}
@@ -743,7 +717,7 @@ export default function Player() {
         </div>
 
         {/* Right Section - Simplified with Menu */}
-        <div className={`flex items-center ${!showTabs ? (compactMode ? 'px-2 py-1' : 'px-3 py-2') : (compactMode ? 'px-2 py-1' : 'px-3 py-2')} space-x-2 border-l`} style={{ borderColor: currentTheme.border }}>
+        <div className={`flex items-center ${!showTabs ? (compactMode ? 'px-2 py-1' : 'px-3 py-2') : (compactMode ? 'px-2 py-1' : 'px-3 py-2')} space-x-2`}>
           {/* Volume Control */}
           <div className="relative">
             <button
@@ -797,9 +771,9 @@ export default function Player() {
             
       {/* Bottom Section - Tabs */}
       {showTabs && (
-        <div className="border-t" style={{ borderColor: currentTheme.border }}>
+        <div className="border-t border-white/10">
           {/* Tab Navigation */}
-          <div className="flex border-b" style={{ borderColor: currentTheme.border }}>
+          <div className="flex border-b border-white/10">
               <button 
               onClick={() => setActiveTab('recent')}
               className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${

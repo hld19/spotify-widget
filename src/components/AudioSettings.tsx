@@ -1,9 +1,4 @@
-﻿/**
- * Audio Settings Component
- * Advanced audio controls including crossfade, normalization, and quality settings
- */
-
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { XMarkIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/solid';
 import Equalizer from './Equalizer';
@@ -244,4 +239,4 @@ export default function AudioSettings({ isOpen, onClose }: AudioSettingsProps) {
       <Equalizer isOpen={showEqualizer} onClose={() => setShowEqualizer(false)} />
     </>
   );
-} 
+}

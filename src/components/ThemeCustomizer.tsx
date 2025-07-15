@@ -3,9 +3,9 @@
  * Advanced theme customization options
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { XMarkIcon, PaintBrushIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, PaintBrushIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
 interface ThemeCustomizerProps {
   isOpen: boolean;
@@ -91,8 +91,13 @@ const presetThemes = [
 ];
 
 export default function ThemeCustomizer({ isOpen, onClose }: ThemeCustomizerProps) {
-  const { currentTheme, updateCustomTheme } = useTheme();
+  const { currentTheme, updateCustomTheme, resetToDefaultTheme, hasCustomTheme } = useTheme();
   const [customColors, setCustomColors] = useState(currentTheme);
+
+  // Update customColors when currentTheme changes
+  useEffect(() => {
+    setCustomColors(currentTheme);
+  }, [currentTheme]);
 
   if (!isOpen) return null;
 
@@ -109,8 +114,14 @@ export default function ThemeCustomizer({ isOpen, onClose }: ThemeCustomizerProp
   };
 
   const applyPreset = (preset: typeof presetThemes[0]) => {
-    setCustomColors(preset.colors);
-    updateCustomTheme(preset.colors);
+    const newColors = preset.colors;
+    setCustomColors(newColors);
+    updateCustomTheme(newColors);
+  };
+
+  const handleReset = () => {
+    resetToDefaultTheme();
+    setCustomColors(currentTheme);
   };
 
   return (
@@ -134,14 +145,40 @@ export default function ThemeCustomizer({ isOpen, onClose }: ThemeCustomizerProp
           <div className="flex items-center space-x-2">
             <PaintBrushIcon className="w-5 h-5" style={{ color: currentTheme.primary }} />
             <h2 className="text-lg font-semibold">Theme Customizer</h2>
+            {hasCustomTheme && (
+              <span className="text-xs px-2 py-1 rounded-full" style={{
+                backgroundColor: currentTheme.primary + '20',
+                color: currentTheme.primary
+              }}>
+                Custom
+              </span>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg transition-colors"
-            style={{ color: currentTheme.textMuted }}
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            {hasCustomTheme && (
+              <button
+                onClick={handleReset}
+                className="p-1 rounded-lg transition-colors hover:bg-opacity-10"
+                style={{ color: currentTheme.textMuted }}
+                title="Reset to default theme"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = currentTheme.backgroundSecondary + '50';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg transition-colors"
+              style={{ color: currentTheme.textMuted }}
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Preset Themes */}
@@ -199,7 +236,7 @@ export default function ThemeCustomizer({ isOpen, onClose }: ThemeCustomizerProp
                 <div className="flex items-center space-x-2">
                   <input
                     type="color"
-                    value={value}
+                    value={value.startsWith('#') ? value : '#1db954'}
                     onChange={(e) => handleColorChange(key, e.target.value)}
                     className="w-10 h-10 rounded cursor-pointer"
                     style={{ backgroundColor: value }}
