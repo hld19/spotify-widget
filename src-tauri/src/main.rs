@@ -154,8 +154,8 @@ fn create_success_page() -> String {
                 </svg>
             </div>
             
-            <h1>🎵 Authentication Successful!</h1>
-            <p>Your Spotify account has been successfully connected to the widget. You can now control your music seamlessly.</p>
+            <h1> Authentication Successful!</h1>
+            <p>ur widget works</p>
             
             <button class="action-button" onclick="window.close()">
                 <svg class="spotify-logo" viewBox="0 0 24 24" fill="currentColor">
@@ -390,7 +390,7 @@ async fn resize_window_for_tabs(app_handle: AppHandle, show_tabs: bool, compact_
             if is_compact {
                 (500, 100)
             } else {
-                (520, 120)
+                (550, 250)
             }
         };
         
