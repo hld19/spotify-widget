@@ -98,11 +98,10 @@ The Spotify Desktop Widget is a lightweight, feature-rich application built with
      ```
    
    **Method B: Direct code edit**
-   - Edit `src/api/spotify.ts`
-   - Find line 5 and replace the fallback value with your Client ID
+   - download the application here https://github.com/hld19/spotify-widget/releases/tag/spotify
 
 5. **Launch the application**
-   ```bash
+   ```cmd
    npm run tauri dev
    ```
 
